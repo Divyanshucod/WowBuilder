@@ -1,11 +1,53 @@
 import { APIModule, Condition, ConditionalVariable, FormModule, type BaseNode } from "./AllClasses";
 
-
+// const initialNodes = [
+//   {
+//     id: 'n1',
+//     position: { x: 0, y: 0 },
+//     data: { label: 'Node 1' },
+//     type: 'input',
+//   },
+//   {
+//     id: 'n2',
+//     position: { x: 100, y: 100 },
+//     data: { label: 'Node 2' },
+//   },
+//   {
+//     id: 'n3',
+//     position: { x: 20, y: 20 },
+//     data: { label: 'Node 3' },
+//     type: 'input',
+//   },
+//   {
+//     id: 'n4',
+//     position: { x: 30, y: 30 },
+//     data: { label: 'Node 4' },
+//   },
+// ];
+// const initialEdges = [
+//   {
+//     id: 'n1-n2',
+//     source: 'n1',
+//     target: 'n2',
+//     type: 'smoothstep',
+//     label: 'connects with',
+//   },
+// ];
 const registerNodes: Map<string, BaseNode> = new Map();
 const sdkResponsesNode: Map<string, string> = new Map();
-export function GenerateNodes(schema: any) {
-    
+export function GenerateNodes(schema: any): { initialNodes: any[]; initialEdges: any[] } {
     schema.modules.forEach((module: any) => {
+        // country //module_countryPicker
+        if (module.type === 'country') {
+            const countryNode = new APIModule();
+            countryNode.id = module.id;
+            countryNode.type = module.type;
+            countryNode.nextStepId = module.nextStepId;
+            countryNode.reference = module;
+            countryNode.subType = module.subType;
+            registerNodes.set(module.id, countryNode);
+        }
+
         // module: form
         if (module.type === 'dynamicForm' || module.subType === 'form') {
             const formNode = new FormModule();
@@ -63,6 +105,12 @@ export function GenerateNodes(schema: any) {
 
     // Create linking
      schema.modules.forEach((module: any) => {
+        // country
+        if (module.type === 'country') {
+            const countryNode = registerNodes.get(module.id);
+            countryNode.nextStepObject = registerNodes.get(module.nextStepId);
+            initialNodes.push(countryNode);
+        }
         // module: form
         if (module.type === 'dynamicForm' || module.subType === 'form') {
            const FormNode = registerNodes.get(module.id);
@@ -114,6 +162,11 @@ export function GenerateNodes(schema: any) {
        }
        // will think what we can do with constant values.
    }
+    
+   return {
+    initialEdges: AllInitialEdgesAndNodes().initialEdges,
+    initialNodes: AllInitialEdgesAndNodes().initialNodes
+   }
 
 }
 
@@ -142,4 +195,92 @@ function getAllFormNextStepIds(formSchema: any): string[] {
         }
     });
     return nextStepIds;
+}
+
+
+function AllInitialEdgesAndNodes(registerNodes: Map<string, any>): { initialEdges: any[]; initialNodes: any[] } {
+    const initialEdges: any[] = [];
+    const initialNodes: any[] = [];
+
+    generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, 'module_countryPicker', 0, 0);
+
+    return { initialEdges, initialNodes };
+}
+
+function generateAllEdgesAndNodes(registerNodes: Map<string, any>, initialEdges: any[], initialNodes: any[], currentId: string, x: number, y: number): void {
+    const currentNode = registerNodes.get(currentId);
+    if (!currentNode) return;
+
+    // Expected Node 
+    // {
+    //     id: 'n3',
+    //     position: { x: 20, y: 20 },
+    //     data: { label: 'Node 3' },
+    //     type: 'input',
+    // }
+    initialNodes.push({
+        id: currentNode.id,
+        position:{ x, y },
+        data: { label: currentNode.id },
+    })
+    
+
+    // Edge looks like 
+    //   {
+    //     id: 'n1-n2',
+    //     source: 'n1',
+    //     target: 'n2',
+    //     type: 'smoothstep',
+    //     label: 'connects with',
+    //    }
+    if(currentNode.type == 'dynamic' || currentNode.type == 'form') {
+        if (currentNode.nextStepObjects && currentNode.nextStepObjects.length > 0) {
+            let tempy = y-30;
+            let tempx = x-30;
+            currentNode.nextStepObjects.forEach(element => {
+                initialEdges.push({ 
+                    id: `${currentId}-${element.id}`,
+                    source: currentId,
+                    target: element.id,
+                    type: 'smoothstep'
+                });
+                generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, element.id, tempx,tempy);
+                tempx += 20;
+            });
+        }
+    }
+    // api 
+    if(currentNode.type === 'api' && currentNode.type === 'document' || currentNode.url) {
+        if (currentNode.nextStepObject) {
+                initialEdges.push({
+                id: `${currentId}-${currentNode.nextStepObject.id}`,
+                source: currentId,
+                target: currentNode.nextStepObject.id,
+                type: 'smoothstep',
+                label:'false'
+               });
+                generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, currentNode.nextStepObject.id, x,y-30);
+        }
+    }
+   // if conditions
+    if(currentNode.if_trueObject) {
+        initialEdges.push({
+            id: `${currentId}-${currentNode.if_trueObject.id}`,
+            source: currentId,
+            target: currentNode.if_trueObject.id,
+            type: 'smoothstep',
+            label:'true'
+        });
+        generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, currentNode.if_trueObject.id, x-30,y-30);
+    }
+    if(currentNode.if_falseObject) {
+        initialEdges.push({
+            id: `${currentId}-${currentNode.if_falseObject.id}`,
+            source: currentId,
+            target: currentNode.if_falseObject.id,
+            type: 'smoothstep',
+            label:'false'
+        });
+        generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, currentNode.if_falseObject.id, x+30,y-30);
+    }
 }
