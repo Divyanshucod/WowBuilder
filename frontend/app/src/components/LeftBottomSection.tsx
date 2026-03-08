@@ -1,46 +1,32 @@
-import {Background, Controls } from '@xyflow/react';
+import {Background, Controls, type Edge, type Node } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ReactFlow, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
-import CustomEdge from './CustomEdge';
 
-const initialNodes = [
-  {
-    id: 'n1',
-    position: { x: 0, y: 0 },
-    data: { label: 'Node 1' },
-    type: 'input',
-  },
-  {
-    id: 'n2',
-    position: { x: 100, y: 100 },
-    data: { label: 'Node 2' },
-  },
-  {
-    id: 'n3',
-    position: { x: 20, y: 20 },
-    data: { label: 'Node 3' },
-    type: 'input',
-  },
-  {
-    id: 'n4',
-    position: { x: 30, y: 30 },
-    data: { label: 'Node 4' },
-  },
-];
-const initialEdges = [
-  {
-    id: 'n1-n2',
-    source: 'n1',
-    target: 'n2',
-    type: 'smoothstep',
-    label: 'connects with',
-  },
-];
-export const LeftBottomSection = ({ initialEdges, initialNodes }:{initialEdges:[], initialNodes:[]}) => {
+import CustomEdge from './CustomEdge';
+import { GenerateNodes } from '../functions/CreateNodes';
+
+export const LeftBottomSection = ({UploadedFile}:{UploadedFile: any | null}) => {
+    const [initialEdges,setInitialEdges] = useState<Edge[]>([]);
+    const [initialNodes,setInitialNodes] = useState<Node[]>([]);
+    // {console.log('in the bottom left');
+    // }
+    // {console.log(UploadedFile);
+    // }
+    useEffect(()=>{
+    //   console.log(UploadedFile);
+      
+      if (UploadedFile) {
+        const val = GenerateNodes(UploadedFile) as { initialEdges: Edge[]; initialNodes: Node[] };
+        if(val){
+            setInitialNodes(val.initialNodes);
+            setInitialEdges(val.initialEdges);
+        }
+      }
+    },[UploadedFile,setInitialNodes,setInitialEdges])
     return (
            <div style={{ height: '100%', width: '100%' }}>
-      <ReactFlow >
+      <ReactFlow nodes={initialNodes} edges={initialEdges}>
         <Background/>
         <Controls />
       </ReactFlow>

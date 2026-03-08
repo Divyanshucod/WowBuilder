@@ -1,286 +1,248 @@
-import { APIModule, Condition, ConditionalVariable, FormModule, type BaseNode } from "./AllClasses";
+import dagre from "dagre";
+import {
+  APIModule,
+  Condition,
+  ConditionalVariable,
+  FormModule,
+  type BaseNode
+} from "./AllClasses";
 
-// const initialNodes = [
-//   {
-//     id: 'n1',
-//     position: { x: 0, y: 0 },
-//     data: { label: 'Node 1' },
-//     type: 'input',
-//   },
-//   {
-//     id: 'n2',
-//     position: { x: 100, y: 100 },
-//     data: { label: 'Node 2' },
-//   },
-//   {
-//     id: 'n3',
-//     position: { x: 20, y: 20 },
-//     data: { label: 'Node 3' },
-//     type: 'input',
-//   },
-//   {
-//     id: 'n4',
-//     position: { x: 30, y: 30 },
-//     data: { label: 'Node 4' },
-//   },
-// ];
-// const initialEdges = [
-//   {
-//     id: 'n1-n2',
-//     source: 'n1',
-//     target: 'n2',
-//     type: 'smoothstep',
-//     label: 'connects with',
-//   },
-// ];
 const registerNodes: Map<string, BaseNode> = new Map();
 const sdkResponsesNode: Map<string, string> = new Map();
-export function GenerateNodes(schema: any): { initialNodes: any[]; initialEdges: any[] } {
-    schema.modules.forEach((module: any) => {
-        // country //module_countryPicker
-        if (module.type === 'country') {
-            const countryNode = new APIModule();
-            countryNode.id = module.id;
-            countryNode.type = module.type;
-            countryNode.nextStepId = module.nextStepId;
-            countryNode.reference = module;
-            countryNode.subType = module.subType;
-            registerNodes.set(module.id, countryNode);
-        }
 
-        // module: form
-        if (module.type === 'dynamicForm' || module.subType === 'form') {
-            const formNode = new FormModule();
-            formNode.id = module.id;
-            formNode.type = module.type;
-            formNode.subType = module.subType;
-            formNode.nextStepIds = getAllFormNextStepIds(module);
-            formNode.reference = module;
-            registerNodes.set(formNode.id, formNode);
-        }
-        // module: api/document
-        if (module.type === 'api' && module.type === 'document' || module.properties.url) {
-            const apiNode = new APIModule();
-            apiNode.id = module.id;
-            apiNode.type = module.type;
-            apiNode.url = module.properties.url;
-            apiNode.subType = module.subType;
-            apiNode.nextStepId = module.nextStepId;
-            apiNode.reference = module;
-            registerNodes.set(apiNode.id, apiNode);
-        }
-    })
+export function GenerateNodes(schema: any) {
+  registerNodes.clear();
+  sdkResponsesNode.clear();
 
+  createModules(schema.modules);
+  createConditions(schema.conditions);
+  createConditionalVariables(schema.conditionalVariables);
+  registerSdkResponses(schema.sdkResponses);
 
-    // condition
-    const conditions = schema.conditions;
-    for (const conditionId in conditions) {
-        const conditionNode = new Condition();
-        conditionNode.id = conditionId;
-        conditionNode.if_trueId = conditions[conditionId].if_true;
-        conditionNode.if_falseId = conditions[conditionId].if_false;
-        conditionNode.reference = conditions[conditionId];
-        conditionNode.rule = conditions[conditionId].rule;
-        registerNodes.set(conditionNode.id, conditionNode);
-    }
+  linkModules(schema.modules);
+  linkConditions(schema.conditions);
+  linkConditionalVariables(schema.conditionalVariables);
 
-    // conditionalVariables
-    const conditionalVariables = schema.conditionalVariables;
-    for (const variableId in conditionalVariables) {
-        const variableNode = new ConditionalVariable();
-        variableNode.id = variableId;
-        variableNode.if_trueId = conditionalVariables[variableId].if_true;
-        variableNode.if_falseId = conditionalVariables[variableId].if_false;
-        variableNode.reference = conditionalVariables[variableId];
-        variableNode.rule = conditionalVariables[variableId].rule;
-        registerNodes.set(variableNode.id, variableNode);
-    }
+  const { nodes, edges } = buildGraph("module_countryPicker");
 
-    // sdkResponses
-    const sdkResponses = schema.sdkResponses;
-    for (const responseId in sdkResponses) {
-        sdkResponsesNode.set(responseId, sdkResponses[responseId]);
-    }
+  const layouted = applyDagreLayout(nodes, edges);
 
-
-    // Create linking
-     schema.modules.forEach((module: any) => {
-        // country
-        if (module.type === 'country') {
-            const countryNode = registerNodes.get(module.id);
-            countryNode.nextStepObject = registerNodes.get(module.nextStepId);
-            initialNodes.push(countryNode);
-        }
-        // module: form
-        if (module.type === 'dynamicForm' || module.subType === 'form') {
-           const FormNode = registerNodes.get(module.id);
-           if (FormNode) {
-               // Link the form node to its next steps
-               FormNode.nextStepIds.forEach((nextStepId: string) => {
-                   const nextStepNode = registerNodes.get(nextStepId);
-                   if (nextStepNode) {
-                       FormNode.nextStepObjects.push(nextStepNode);
-                   }
-               });
-           }
-        }
-        // module: api/document
-        if (module.type === 'api' && module.type === 'document' || module.properties.url) {
-            const apiNode = registerNodes.get(module.id);
-            if (apiNode) {
-                // Link the API node to its next steps
-               apiNode.nextStepObject = registerNodes.get(module.nextStepId);
-            }
-        }
-    })
-
-    // same for conditions
-    for (const conditionId in conditions) {
-       const conditionNode = registerNodes.get(conditionId);
-       if (conditionNode) {
-           conditionNode.if_trueObject = registerNodes.get(conditionNode.if_trueId);
-           conditionNode.if_falseObject = registerNodes.get(conditionNode.if_falseId);
-       }
-    }
-
-    // same for conditionalVariables
-    for (const variableId in conditionalVariables) {
-        // if the starting pointer is conditionalVariables or module_
-       const variableNode = registerNodes.get(variableId);
-       if (variableNode) {
-           const splittedValuesTrue = variableNode.if_trueId.split('.');
-           const splittedValuesFalse = variableNode.if_falseId.split('.');
-           if(splittedValuesTrue.length == 2) {
-               const requiredNode = splittedValuesTrue[0] == 'conditionalVariables' ? registerNodes.get(splittedValuesTrue[1]) : registerNodes.get(splittedValuesTrue[0]);
-               variableNode.if_trueObject = requiredNode;
-           }
-           if(splittedValuesFalse.length == 2) {
-               const requiredNode = splittedValuesFalse[0] == 'conditionalVariables' ? registerNodes.get(splittedValuesFalse[1]) : registerNodes.get(splittedValuesFalse[0]);
-               variableNode.if_falseObject = requiredNode;
-           }
-
-       }
-       // will think what we can do with constant values.
-   }
-    
-   return {
-    initialEdges: AllInitialEdgesAndNodes().initialEdges,
-    initialNodes: AllInitialEdgesAndNodes().initialNodes
-   }
-
+  return {
+    initialNodes: layouted.nodes,
+    initialEdges: layouted.edges
+  };
 }
 
-
-function getAllFormNextStepIds(formSchema: any): string[] {
-    const nextStepIds: string[] = [];
-    // if nextStep has some id
-    if (formSchema.nextStep != '') {
-        nextStepIds.push(...formSchema.nextStep);
+function createModules(modules: any[]) {
+  modules.forEach((module) => {
+    if (module.type === "countries") {
+      const node = new APIModule();
+      node.id = module.id;
+      node.type = module.type;
+      node.nextStepId = module.nextStep;
+      node.reference = module;
+      registerNodes.set(node.id, node);
+      return;
     }
-    // checking other remaining positions.
-    formSchema.properties.sections.forEach((section: any) => {
-        if (section.components) {
-            section.components.forEach((element: any) => {
-                if (element.type == 'button') {
-                    nextStepIds.push(...element.onClick.nextStep);
-                }
-            });
-        }
-        else if (section.footer) {
-            section.footer.components.forEach((element: any) => {
-                if (element.type == 'button') {
-                    nextStepIds.push(...element.onClick.nextStep);
-                }
-            });
-        }
+
+    if (module.type === "dynamicForm" || module.subType === "form") {
+      const node = new FormModule();
+      node.id = module.id;
+      node.type = module.type;
+      node.nextStepIds = getFormNextSteps(module);
+      node.reference = module;
+      registerNodes.set(node.id, node);
+      return;
+    }
+
+    if (module.type === "api" || module.type === "document" || module.properties?.url) {
+      const node = new APIModule();
+      node.id = module.id;
+      node.type = module.type;
+      node.url = module.properties?.url;
+      node.nextStepId = module.nextStep;
+      node.reference = module;
+      registerNodes.set(node.id, node);
+    }
+  });
+}
+
+function createConditions(conditions: any) {
+  for (const id in conditions) {
+    const node = new Condition();
+    node.id = id;
+    node.if_trueId = conditions[id].if_true;
+    node.if_falseId = conditions[id].if_false;
+    node.rule = conditions[id].rule;
+    node.reference = conditions[id];
+
+    registerNodes.set(id, node);
+  }
+}
+
+function createConditionalVariables(vars: any) {
+  for (const id in vars) {
+    const node = new ConditionalVariable();
+    node.id = id;
+    node.if_trueId = vars[id].if_true;
+    node.if_falseId = vars[id].if_false;
+    node.rule = vars[id].rule;
+    node.reference = vars[id];
+
+    registerNodes.set(id, node);
+  }
+}
+
+function registerSdkResponses(responses: any) {
+  for (const id in responses) {
+    sdkResponsesNode.set(id, responses[id]);
+  }
+}
+
+function linkModules(modules: any[]) {
+  modules.forEach((module) => {
+    const node = registerNodes.get(module.id);
+    if (!node) return;
+
+    if (node.nextStepId) {
+      node.nextStepObject = registerNodes.get(node.nextStepId);
+    }
+
+    if (node.nextStepIds) {
+      node.nextStepObjects = node.nextStepIds
+        .map((id: string) => registerNodes.get(id))
+        .filter(Boolean);
+    }
+  });
+}
+
+function linkConditions(conditions: any) {
+  for (const id in conditions) {
+    const node = registerNodes.get(id);
+    if (!node) return;
+
+    node.if_trueObject = registerNodes.get(node.if_trueId);
+    node.if_falseObject = registerNodes.get(node.if_falseId);
+  }
+}
+
+function linkConditionalVariables(vars: any) {
+  for (const id in vars) {
+    const node = registerNodes.get(id);
+    if (!node) return;
+
+    node.if_trueObject = resolvePointer(node.if_trueId);
+    node.if_falseObject = resolvePointer(node.if_falseId);
+  }
+}
+
+function resolvePointer(pointer: string) {
+  const parts = pointer.split(".");
+  if (parts.length === 2) {
+    return parts[0] === "conditionalVariables"
+      ? registerNodes.get(parts[1])
+      : registerNodes.get(parts[0]);
+  }
+  return registerNodes.get(pointer);
+}
+
+function buildGraph(startId: string) {
+  const nodes: any[] = [];
+  const edges: any[] = [];
+  const visited = new Set<string>();
+
+  function dfs(id: string) {
+    if (visited.has(id)) return;
+    visited.add(id);
+
+    const node = registerNodes.get(id);
+    if (!node) return;
+
+    nodes.push({
+      id,
+      data: { label: id }
     });
-    return nextStepIds;
+
+    const nextNodes = getNextNodes(node);
+
+    nextNodes.forEach((next) => {
+      edges.push({
+        id: `${id}-${next.id}`,
+        source: id,
+        target: next.id,
+        type: "smoothstep"
+      });
+
+      dfs(next.id);
+    });
+  }
+
+  dfs(startId);
+
+  return { nodes, edges };
 }
 
+function getNextNodes(node: BaseNode): BaseNode[] {
+  const next: BaseNode[] = [];
 
-function AllInitialEdgesAndNodes(registerNodes: Map<string, any>): { initialEdges: any[]; initialNodes: any[] } {
-    const initialEdges: any[] = [];
-    const initialNodes: any[] = [];
+  if (node.nextStepObject) next.push(node.nextStepObject);
+  if (node.nextStepObjects) next.push(...node.nextStepObjects);
+  if (node.if_trueObject) next.push(node.if_trueObject);
+  if (node.if_falseObject) next.push(node.if_falseObject);
 
-    generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, 'module_countryPicker', 0, 0);
-
-    return { initialEdges, initialNodes };
+  return next;
 }
 
-function generateAllEdgesAndNodes(registerNodes: Map<string, any>, initialEdges: any[], initialNodes: any[], currentId: string, x: number, y: number): void {
-    const currentNode = registerNodes.get(currentId);
-    if (!currentNode) return;
+function getFormNextSteps(form: any) {
+  const ids: string[] = [];
 
-    // Expected Node 
-    // {
-    //     id: 'n3',
-    //     position: { x: 20, y: 20 },
-    //     data: { label: 'Node 3' },
-    //     type: 'input',
-    // }
-    initialNodes.push({
-        id: currentNode.id,
-        position:{ x, y },
-        data: { label: currentNode.id },
-    })
-    
+  if (form.nextStep) ids.push(form.nextStep);
 
-    // Edge looks like 
-    //   {
-    //     id: 'n1-n2',
-    //     source: 'n1',
-    //     target: 'n2',
-    //     type: 'smoothstep',
-    //     label: 'connects with',
-    //    }
-    if(currentNode.type == 'dynamic' || currentNode.type == 'form') {
-        if (currentNode.nextStepObjects && currentNode.nextStepObjects.length > 0) {
-            let tempy = y-30;
-            let tempx = x-30;
-            currentNode.nextStepObjects.forEach(element => {
-                initialEdges.push({ 
-                    id: `${currentId}-${element.id}`,
-                    source: currentId,
-                    target: element.id,
-                    type: 'smoothstep'
-                });
-                generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, element.id, tempx,tempy);
-                tempx += 20;
-            });
-        }
-    }
-    // api 
-    if(currentNode.type === 'api' && currentNode.type === 'document' || currentNode.url) {
-        if (currentNode.nextStepObject) {
-                initialEdges.push({
-                id: `${currentId}-${currentNode.nextStepObject.id}`,
-                source: currentId,
-                target: currentNode.nextStepObject.id,
-                type: 'smoothstep',
-                label:'false'
-               });
-                generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, currentNode.nextStepObject.id, x,y-30);
-        }
-    }
-   // if conditions
-    if(currentNode.if_trueObject) {
-        initialEdges.push({
-            id: `${currentId}-${currentNode.if_trueObject.id}`,
-            source: currentId,
-            target: currentNode.if_trueObject.id,
-            type: 'smoothstep',
-            label:'true'
-        });
-        generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, currentNode.if_trueObject.id, x-30,y-30);
-    }
-    if(currentNode.if_falseObject) {
-        initialEdges.push({
-            id: `${currentId}-${currentNode.if_falseObject.id}`,
-            source: currentId,
-            target: currentNode.if_falseObject.id,
-            type: 'smoothstep',
-            label:'false'
-        });
-        generateAllEdgesAndNodes(registerNodes, initialEdges, initialNodes, currentNode.if_falseObject.id, x+30,y-30);
-    }
+  form.properties?.sections?.forEach((section: any) => {
+    const components = section.components || section.footer?.components;
+
+    components?.forEach((c: any) => {
+      if (c.type === "button") {
+        ids.push(c.onClick.nextStep);
+      }
+    });
+  });
+
+  return ids;
+}
+
+function applyDagreLayout(nodes: any[], edges: any[]) {
+  const dagreGraph = new dagre.graphlib.Graph();
+
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+
+  dagreGraph.setGraph({
+    rankdir: "TB", // top to bottom
+    nodesep: 80,
+    ranksep: 120
+  });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: 150, height: 50 });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const pos = dagreGraph.node(node.id);
+
+    return {
+      ...node,
+      position: {
+        x: pos.x,
+        y: pos.y
+      }
+    };
+  });
+
+  return { nodes: layoutedNodes, edges };
 }
