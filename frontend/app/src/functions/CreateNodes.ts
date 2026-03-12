@@ -1,4 +1,4 @@
-import dagre from "dagre";
+
 import {
   APIModule,
   Condition,
@@ -10,12 +10,21 @@ import {
 const registerNodes: Map<string, BaseNode> = new Map();
 const sdkResponsesNode: Map<string, string> = new Map();
 
+const H_SPACING = 200;
+const V_SPACING = 100;
+
 export function GenerateNodes(schema: any) {
+
   registerNodes.clear();
   sdkResponsesNode.clear();
 
   createModules(schema.modules);
   createConditions(schema.conditions);
+  
+  for (const [id, node] of registerNodes){
+    console.log(`Node ID: ${id}, Node Type: ${JSON.stringify(node)}`);
+    
+  }
   createConditionalVariables(schema.conditionalVariables);
   registerSdkResponses(schema.sdkResponses);
 
@@ -25,13 +34,13 @@ export function GenerateNodes(schema: any) {
 
   const { nodes, edges } = buildGraph("module_countryPicker");
 
-  const layouted = applyDagreLayout(nodes, edges);
-
   return {
-    initialNodes: layouted.nodes,
-    initialEdges: layouted.edges
+    initialNodes: nodes,
+    initialEdges: edges
   };
 }
+
+
 
 function createModules(modules: any[]) {
   modules.forEach((module) => {
@@ -146,49 +155,118 @@ function resolvePointer(pointer: string) {
   return registerNodes.get(pointer);
 }
 
+
 function buildGraph(startId: string) {
+
   const nodes: any[] = [];
   const edges: any[] = [];
-  const visited = new Set<string>();
 
-  function dfs(id: string) {
-    if (visited.has(id)) return;
-    visited.add(id);
+  const visitCount = new Map<string, number>();
+const firstInstance = new Map<string, string>();
 
-    const node = registerNodes.get(id);
-    if (!node) return;
+let currentX = 0;
+
+function dfs(id: string, depth: number, parentId?: string) {
+
+  const count = (visitCount.get(id) || 0) + 1;
+  visitCount.set(id, count);
+
+  const uniqueId = `${id}-${count}`;
+
+  if (count > 1 && !checkEndState(id)) {
+
+    const gotoId = `GOTO-${uniqueId}`;
 
     nodes.push({
-      id,
-      data: { label: id }
+      id: gotoId,
+      data: {
+        label: `↪ ${id}`,
+        originalId: firstInstance.get(id)
+      },
+      position: {
+        x: currentX * H_SPACING,
+        y: depth * V_SPACING
+      }
     });
 
-    const nextNodes = getNextNodes(node);
-
-    nextNodes.forEach((next) => {
+    if (parentId) {
       edges.push({
-        id: `${id}-${next.id}`,
-        source: id,
-        target: next.id,
+        id: `${parentId}-${gotoId}`,
+        source: parentId,
+        target: gotoId,
         type: "smoothstep"
       });
+    }
 
-      dfs(next.id);
+    currentX++;
+    return;
+  }
+  if(!checkEndState(id)){
+  firstInstance.set(id, uniqueId);
+  }
+
+  nodes.push({
+    id: uniqueId,
+    data: {
+      label: id,
+      originalId: id
+    },
+    position: {
+      x: currentX * H_SPACING,
+      y: depth * V_SPACING
+    }
+  });
+
+  if (parentId) {
+    edges.push({
+      id: `${parentId}-${uniqueId}`,
+      source: parentId,
+      target: uniqueId,
+      type: "smoothstep"
     });
   }
 
-  dfs(startId);
+  if (checkEndState(id)) {
+    currentX++;
+    return;
+  }
+
+  const children = getNextNodes(registerNodes.get(id)!);
+
+  if (!children.length) {
+    currentX++;
+    return;
+  }
+  const startX = currentX;
+
+  children.forEach(child => {
+    dfs(child, depth + 1, uniqueId);
+  });
+
+  const endX = currentX - 1;
+
+  const centerX = (startX + endX) / 2;
+
+  const node = nodes.find(n => n.id === uniqueId);
+  if (node) {
+    node.position.x = centerX * H_SPACING;
+  }
+}
+  dfs(startId, 0);
 
   return { nodes, edges };
 }
 
-function getNextNodes(node: BaseNode): BaseNode[] {
-  const next: BaseNode[] = [];
 
-  if (node.nextStepObject) next.push(node.nextStepObject);
-  if (node.nextStepObjects) next.push(...node.nextStepObjects);
-  if (node.if_trueObject) next.push(node.if_trueObject);
-  if (node.if_falseObject) next.push(node.if_falseObject);
+
+function getNextNodes(node: BaseNode): string[] {
+  const next: string[] = [];
+  
+  if (node && node.if_trueId) next.push(node.if_trueId);
+  if (node && node.if_falseId) next.push(node.if_falseId);
+
+  if (node && node.nextStepId) next.push(node.nextStepId);
+  if (node && node.nextStepIds) next.push(...node.nextStepIds);
 
   return next;
 }
@@ -211,38 +289,14 @@ function getFormNextSteps(form: any) {
   return ids;
 }
 
-function applyDagreLayout(nodes: any[], edges: any[]) {
-  const dagreGraph = new dagre.graphlib.Graph();
 
-  dagreGraph.setDefaultEdgeLabel(() => ({}));
-
-  dagreGraph.setGraph({
-    rankdir: "TB", // top to bottom
-    nodesep: 80,
-    ranksep: 120
-  });
-
-  nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: 150, height: 50 });
-  });
-
-  edges.forEach((edge) => {
-    dagreGraph.setEdge(edge.source, edge.target);
-  });
-
-  dagre.layout(dagreGraph);
-
-  const layoutedNodes = nodes.map((node) => {
-    const pos = dagreGraph.node(node.id);
-
-    return {
-      ...node,
-      position: {
-        x: pos.x,
-        y: pos.y
-      }
-    };
-  });
-
-  return { nodes: layoutedNodes, edges };
+function checkEndState(id: string): boolean {
+    return id == 'approve' || id == 'decline' || id == 'auto_decline' || id == 'auto_approve' || id == 'needs_review' || id == 'manualReview';
 }
+
+
+
+
+
+
+
