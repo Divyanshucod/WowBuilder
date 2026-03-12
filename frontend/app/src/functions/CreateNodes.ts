@@ -1,4 +1,3 @@
-
 import {
   APIModule,
   Condition,
@@ -20,11 +19,7 @@ export function GenerateNodes(schema: any) {
 
   createModules(schema.modules);
   createConditions(schema.conditions);
-  
-  for (const [id, node] of registerNodes){
-    console.log(`Node ID: ${id}, Node Type: ${JSON.stringify(node)}`);
-    
-  }
+
   createConditionalVariables(schema.conditionalVariables);
   registerSdkResponses(schema.sdkResponses);
 
@@ -32,11 +27,12 @@ export function GenerateNodes(schema: any) {
   linkConditions(schema.conditions);
   linkConditionalVariables(schema.conditionalVariables);
 
-  const { nodes, edges } = buildGraph("module_countryPicker");
+  const { nodes, edges, firstInstanceMap } = buildGraph("module_countryPicker");
 
   return {
     initialNodes: nodes,
-    initialEdges: edges
+    initialEdges: edges,
+    firstInstanceMap: firstInstanceMap
   };
 }
 
@@ -160,28 +156,56 @@ function buildGraph(startId: string) {
 
   const nodes: any[] = [];
   const edges: any[] = [];
-
+  const firstInstance = new Map<string, string>();
   const visitCount = new Map<string, number>();
-const firstInstance = new Map<string, string>();
 
-let currentX = 0;
+  let currentX = 0;
 
-function dfs(id: string, depth: number, parentId?: string) {
+  function dfs(id: string, depth: number, parentId?: string) {
 
-  const count = (visitCount.get(id) || 0) + 1;
-  visitCount.set(id, count);
+    const count = (visitCount.get(id) || 0) + 1;
+    visitCount.set(id, count);
 
-  const uniqueId = `${id}-${count}`;
+    const uniqueId = `${id}-${count}`;
 
-  if (count > 1 && !checkEndState(id)) {
+    if (count > 1 && !checkEndState(id)) {
 
-    const gotoId = `GOTO-${uniqueId}`;
+      const gotoId = `GOTO-${uniqueId}`;
+      const originalId = firstInstance.get(id) || id;
+
+      nodes.push({
+        id: gotoId,
+        data: {
+          label: `↪ ${id}`,
+          originalId: originalId
+        },
+        position: {
+          x: currentX * H_SPACING,
+          y: depth * V_SPACING
+        }
+      });
+
+      if (parentId) {
+        edges.push({
+          id: `${parentId}-${gotoId}`,
+          source: parentId,
+          target: gotoId,
+          type: "smoothstep"
+        });
+      }
+
+      currentX++;
+      return;
+    }
+    if (!checkEndState(id)) {
+      firstInstance.set(id, uniqueId);
+    }
 
     nodes.push({
-      id: gotoId,
+      id: uniqueId,
       data: {
-        label: `↪ ${id}`,
-        originalId: firstInstance.get(id)
+        label: id,
+        originalId: id
       },
       position: {
         x: currentX * H_SPACING,
@@ -191,70 +215,42 @@ function dfs(id: string, depth: number, parentId?: string) {
 
     if (parentId) {
       edges.push({
-        id: `${parentId}-${gotoId}`,
+        id: `${parentId}-${uniqueId}`,
         source: parentId,
-        target: gotoId,
+        target: uniqueId,
         type: "smoothstep"
       });
     }
 
-    currentX++;
-    return;
-  }
-  if(!checkEndState(id)){
-  firstInstance.set(id, uniqueId);
-  }
-
-  nodes.push({
-    id: uniqueId,
-    data: {
-      label: id,
-      originalId: id
-    },
-    position: {
-      x: currentX * H_SPACING,
-      y: depth * V_SPACING
+    if (checkEndState(id)) {
+      currentX++;
+      return;
     }
-  });
 
-  if (parentId) {
-    edges.push({
-      id: `${parentId}-${uniqueId}`,
-      source: parentId,
-      target: uniqueId,
-      type: "smoothstep"
+    const children = getNextNodes(registerNodes.get(id)!);
+
+    if (!children.length) {
+      currentX++;
+      return;
+    }
+    const startX = currentX;
+
+    children.forEach(child => {
+      dfs(child, depth + 1, uniqueId);
     });
+
+    const endX = currentX - 1;
+
+    const centerX = (startX + endX) / 2;
+
+    const node = nodes.find(n => n.id === uniqueId);
+    if (node) {
+      node.position.x = centerX * H_SPACING;
+    }
   }
-
-  if (checkEndState(id)) {
-    currentX++;
-    return;
-  }
-
-  const children = getNextNodes(registerNodes.get(id)!);
-
-  if (!children.length) {
-    currentX++;
-    return;
-  }
-  const startX = currentX;
-
-  children.forEach(child => {
-    dfs(child, depth + 1, uniqueId);
-  });
-
-  const endX = currentX - 1;
-
-  const centerX = (startX + endX) / 2;
-
-  const node = nodes.find(n => n.id === uniqueId);
-  if (node) {
-    node.position.x = centerX * H_SPACING;
-  }
-}
   dfs(startId, 0);
 
-  return { nodes, edges };
+  return { nodes, edges, firstInstanceMap: firstInstance };
 }
 
 
@@ -291,12 +287,5 @@ function getFormNextSteps(form: any) {
 
 
 function checkEndState(id: string): boolean {
-    return id == 'approve' || id == 'decline' || id == 'auto_decline' || id == 'auto_approve' || id == 'needs_review' || id == 'manualReview';
+    return id === 'approve' || id === 'decline' || id === 'auto_decline' || id === 'auto_approve' || id === 'needs_review' || id === 'manualReview';
 }
-
-
-
-
-
-
-
