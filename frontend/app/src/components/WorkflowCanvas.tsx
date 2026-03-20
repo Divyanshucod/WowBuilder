@@ -1,9 +1,10 @@
-import {Background, Controls, type Edge, type Node } from '@xyflow/react';
+import {Background, BackgroundVariant, Controls, type Edge, type Node, type ColorMode} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useState, useCallback, useEffect } from 'react';
 import { ReactFlow, applyEdgeChanges, applyNodeChanges, useReactFlow } from '@xyflow/react';
 
 import { GenerateNodes } from '../functions/CreateNodes';
+import { useTheme } from './Hooks/ThemeToggler';
 
 interface GenerateNodesReturn {
   initialNodes: Node[];
@@ -11,12 +12,12 @@ interface GenerateNodesReturn {
   firstInstanceMap: Map<string, string>;
 }
 
-export const LeftBottomSection = ({UploadedFile}:{UploadedFile: any | null}) => {
+export const WorkflowCanvas = ({UploadedFile}:{UploadedFile: any | null}) => {
     const [initialEdges, setInitialEdges] = useState<Edge[]>([]);
     const [initialNodes, setInitialNodes] = useState<Node[]>([]);
     const [firstInstanceMap, setFirstInstanceMap] = useState<Map<string, string>>(new Map());
     const { setCenter } = useReactFlow();
-
+    const {theme, toggleTheme} = useTheme();
     useEffect(() => {
       if (UploadedFile) {
         const val = GenerateNodes(UploadedFile) as GenerateNodesReturn;
@@ -55,13 +56,21 @@ export const LeftBottomSection = ({UploadedFile}:{UploadedFile: any | null}) => 
     }, [initialNodes, setCenter]);
 
     return (
-           <div style={{ height: '100%', width: '100%' }}>
+           <div className='h-full w-full'>
       <ReactFlow 
         nodes={initialNodes} 
         edges={initialEdges}
         onNodeClick={handleNodeClick}
+        colorMode={theme}
       >
-        <Background/>
+        <Background
+  gap={20}
+  size={1}
+  color="#1f2937"
+/>
+<div className="absolute top-4 left-1/2 -translate-x-1/2 text-xs text-gray-400">
+  Scroll to explore • Click nodes for details
+</div>
         <Controls />
       </ReactFlow>
     </div>

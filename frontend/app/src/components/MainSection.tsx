@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { LeftSection } from "./LeftSection";
-import { RightSection } from "./RightSection";
+import { CanvasLayout } from "./CanvasLayout";
+import { InspectorPanel } from "./InspectorPanel";
 
 export const MainSection = () => {
     const [uploadedFile, setUploadedFile] = useState<any | null>(null);
@@ -12,9 +12,9 @@ export const MainSection = () => {
     }, [uploadedFile]);
 
     return (
-        <div className="min-h-screen min-w-screen p-5 flex">
-            <LeftSection UploadFile={uploadedFile}/>
-            <RightSection setUploadedFile={setUploadedFile}/>
+        <div className="h-screen w-full flex overflow-hidden bg-gray-50 dark:bg-[#0B1220]">
+            <CanvasLayout UploadFile={uploadedFile} />
+            <InspectorPanel setUploadedFile={setUploadedFile} />
         </div>
-    );  
+    );
 }

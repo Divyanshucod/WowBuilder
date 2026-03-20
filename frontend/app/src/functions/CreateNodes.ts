@@ -1,3 +1,4 @@
+import { styleApprove, styleCondition, styleDecline, styleGOTO, styleMode, styleNeedsReview } from "../App";
 import {
   APIModule,
   Condition,
@@ -8,7 +9,6 @@ import {
 
 const registerNodes: Map<string, BaseNode> = new Map();
 const sdkResponsesNode: Map<string, string> = new Map();
-
 const H_SPACING = 200;
 const V_SPACING = 100;
 
@@ -182,6 +182,9 @@ function buildGraph(startId: string) {
         position: {
           x: currentX * H_SPACING,
           y: depth * V_SPACING
+        },
+        style: {
+          ...styleGOTO
         }
       });
 
@@ -210,7 +213,8 @@ function buildGraph(startId: string) {
       position: {
         x: currentX * H_SPACING,
         y: depth * V_SPACING
-      }
+      },
+      style: id.startsWith('condition') ? { ...styleCondition } : checkEndState(id) ? id === 'approve' ? { ...styleApprove } : id === 'decline' ? { ...styleDecline } : { ...styleNeedsReview } : { ...styleMode }
     });
 
     if (parentId) {
