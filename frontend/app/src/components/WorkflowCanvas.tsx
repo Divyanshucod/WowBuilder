@@ -1,10 +1,12 @@
-import {Background, BackgroundVariant, Controls, type Edge, type Node, type ColorMode} from '@xyflow/react';
+import {Background, BackgroundVariant, Controls, type Edge, type Node} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useState, useCallback, useEffect } from 'react';
 import { ReactFlow, applyEdgeChanges, applyNodeChanges, useReactFlow } from '@xyflow/react';
 
 import { GenerateNodes } from '../functions/CreateNodes';
 import { useTheme } from './Hooks/ThemeToggler';
+import type { themeColor } from './Contexts';
+import { highlightDark, highlightLight } from './UI/NodeUI';
 
 interface GenerateNodesReturn {
   initialNodes: Node[];
@@ -18,6 +20,41 @@ export const WorkflowCanvas = ({UploadedFile}:{UploadedFile: any | null}) => {
     const [firstInstanceMap, setFirstInstanceMap] = useState<Map<string, string>>(new Map());
     const { setCenter } = useReactFlow();
     const {theme, toggleTheme} = useTheme();
+
+   const flashHighlightNode = (nodeId: string, theme: themeColor) => {
+  const highlightStyle = theme === "dark" ? highlightDark : highlightLight;
+
+  setInitialNodes((nds) =>
+    nds.map((node) =>
+      node.id === nodeId
+        ? {
+            ...node,
+            style: {
+              ...node.style,
+              ...highlightStyle,
+            },
+          }
+        : node
+    )
+  );
+
+  setTimeout(() => {
+    setInitialNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              style: {
+                ...node.style,
+                outline: "none",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              },
+            }
+          : node
+      )
+    );
+  }, 1200);
+};
     useEffect(() => {
       if (UploadedFile) {
         const val = GenerateNodes(UploadedFile) as GenerateNodesReturn;
@@ -26,12 +63,13 @@ export const WorkflowCanvas = ({UploadedFile}:{UploadedFile: any | null}) => {
             setInitialEdges(val.initialEdges);
             setFirstInstanceMap(val.firstInstanceMap);
 
-            // Focus on the starting module (module_countryPicker)
+            // Focus on the start module (module_countryPicker)
             const startNode = val.initialNodes.find(n => n.id.includes('module_countryPicker'));
             if (startNode) {
               setTimeout(() => {
                 setCenter(startNode.position.x, startNode.position.y, { zoom: 1.5, duration: 800 });
               }, 100);
+              flashHighlightNode(startNode.id, theme)
             }
         }
       }
@@ -51,6 +89,7 @@ export const WorkflowCanvas = ({UploadedFile}:{UploadedFile: any | null}) => {
           if (targetNode) {
             setCenter(targetNode.position.x, targetNode.position.y, { zoom: 1.5, duration: 800 });
           }
+          flashHighlightNode(originalId, theme);
         }
       }
     }, [initialNodes, setCenter]);
@@ -62,6 +101,9 @@ export const WorkflowCanvas = ({UploadedFile}:{UploadedFile: any | null}) => {
         edges={initialEdges}
         onNodeClick={handleNodeClick}
         colorMode={theme}
+        panOnScroll={true}
+        selectionOnDrag={true}
+        panOnDrag={false}
       >
         <Background
   gap={20}

@@ -100,3 +100,14 @@ export const moduleDark = {
   borderColor: "#374151",
 };
 
+// HighLight node
+
+export const highlightLight = {
+  border: "2px solid #3B82F6",
+  boxShadow: "0 0 0 4px rgba(59,130,246,0.2)",
+};
+
+export const highlightDark = {
+  border: "2px solid #60A5FA",
+  boxShadow: "0 0 0 4px rgba(96,165,250,0.3)",
+};
