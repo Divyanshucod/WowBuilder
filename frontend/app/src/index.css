@@ -1,3 +1,11 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+
+.disable-interaction .react-flow__pane {
+  pointer-events: none;
+}
+
+.react-flow {
+  z-index: 0;
+}

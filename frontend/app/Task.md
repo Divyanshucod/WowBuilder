@@ -12,6 +12,7 @@
 
 4. Handle empty state (no results found)
 
+### Issue is with the canvas own UI which is causing issues with our searchReaults UI, we can skip this part for now
 
 ## API Module Support
 

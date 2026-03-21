@@ -2,7 +2,7 @@ import { ExportButton } from "./ExportButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { SearchNodes } from "./SearchNodes";
 
-export const ToolBar = () => {
+export const ToolBar = ({firstInstanceMap, initialNodes, setInitialNodes, isSearchOpen, setIsSearchOpen}:{firstInstanceMap: Map<string, string>, initialNodes: Node[], setInitialNodes: React.Dispatch<React.SetStateAction<Node[]>>, isSearchOpen: boolean, setIsSearchOpen:(val:boolean)=>void}) => {
     return (
   <div className="h-14 px-4 flex items-center justify-between bg-white/80 dark:bg-[#0B1220]/80 backdrop-blur border-b border-gray-200 dark:border-gray-800">
 
@@ -15,7 +15,7 @@ export const ToolBar = () => {
 
   {/* Center (Search) */}
   <div className="flex-1 max-w-md mx-6">
-    <SearchNodes />
+    <SearchNodes firstInstanceMap={firstInstanceMap} initialNodes={initialNodes} setInitialNodes={setInitialNodes} isSearchOpen={isSearchOpen} setIsSearchOpen={setIsSearchOpen}/>
   </div>
 
   {/* Right */}
