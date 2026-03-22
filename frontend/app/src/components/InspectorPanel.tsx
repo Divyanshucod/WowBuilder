@@ -3,10 +3,11 @@ import { AssistantPanel } from "./AssistantPanel";
 import { NodeInspector } from "./NodeInspector";
 import { UploadSection } from "./UploadSection";
 
-export const InspectorPanel = ({ setUploadedFile,selectedNode, setEdited }:{
+export const InspectorPanel = ({ setUploadedFile,selectedNode, setEdited, Edited }:{
     setUploadedFile: (data: any | null) => void,
     selectedNode: BaseNode | null
     setEdited : (data: boolean) => void
+    Edited: boolean
 }) => {
 
     return (

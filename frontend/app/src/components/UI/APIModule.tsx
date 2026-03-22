@@ -27,7 +27,7 @@ export const baseConfig = {
     name: "",
     id: ""
 };
-export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: BaseNode, setMinimize: (minimize: boolean) => void, minimize: boolean, setEdited: (data: boolean) => void }) => {
+export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { node: BaseNode, setMinimize: (minimize: boolean) => void, minimize: boolean, setEdited: (data: boolean) => void, edited: boolean }) => {
     const [currentNode, setCurrentNode] = useState({})
     const [initialNodeConfig, setInitialNodeConfig] = useState<NodeConfigType>(baseConfig);
     const [appId, setAppId] = useState<string | undefined>(undefined);
@@ -48,25 +48,15 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: Ba
     async function handleAPICall() {
         setMadeApiCall(true);
         setAPIInProcess(true);
-        console.log('till here 1');
         const headers = { ...Object.fromEntries(nodeConfig.headers.map(h => [h.name, h.value])), appId, appKey, transactionId, 'Content-Type': 'application/json' };
-        console.log('Here 1');
-        console.log(headers);
         const body = Object.fromEntries(nodeConfig.body.map(b => [b.name, b.value]));
-        console.log('Here 2');
-        console.log(body);
         const params = Object.fromEntries(nodeConfig.query.map(q => [q.name, q.value]));
-        console.log('Here 3');
-        console.log(params);
-        console.log('till here2');
         try {
             const response = nodeConfig.method === "json_post"
                 ? await axios.post(nodeConfig.url, body, { headers, params })
                 : await axios.get(nodeConfig.url, { headers, params });
 
-            console.log('till here 3');
             setResult(response.data);
-            console.log('till here 4');
 
         } catch (err) {
             setResult("Error occurred");
@@ -77,6 +67,7 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: Ba
 
     function SaveChanges() {
         let somethingUpdate = false;
+        let idChanged = false;
 
         const updatedNode = structuredClone(node);
 
@@ -98,28 +89,17 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: Ba
             };
             somethingUpdate = true;
         }
-
+        // Id change
         if (initialNodeConfig.id !== nodeConfig.id) {
             registerNodes.delete(initialNodeConfig.id);
 
             updatedNode.id = nodeConfig.id;
             updatedNode.reference.id = nodeConfig.id;
 
-            // update all references pointing to this node
-            registerNodes.forEach((value) => {
-                if (value.nextStepId === initialNodeConfig.id) {
-                    value.nextStepId = nodeConfig.id;
-                }
-                if (value.if_trueId === initialNodeConfig.id) {
-                    value.if_trueId = nodeConfig.id;
-                }
-                if (value.if_falseId === initialNodeConfig.id) {
-                    value.if_falseId = nodeConfig.id;
-                }
-            });
-
+            idChanged = true;
             somethingUpdate = true;
         }
+
 
         if (initialNodeConfig.nextStep !== nodeConfig.nextStep) {
             updatedNode.nextStepId = nodeConfig.nextStep;
@@ -129,11 +109,12 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: Ba
 
         if (JSON.stringify(initialNodeConfig.headers) !== JSON.stringify(nodeConfig.headers)) {
             updatedNode.reference.headers = Object.fromEntries(
-                nodeConfig.headers.map(h => [h.name, h.value])
+                nodeConfig.headers
+                    .filter(h => h.name)
+                    .map(h => [h.name, h.value])
             );
             somethingUpdate = true;
         }
-
 
         if (JSON.stringify(initialNodeConfig.query) !== JSON.stringify(nodeConfig.query)) {
             updatedNode.reference.properties = {
@@ -147,7 +128,6 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: Ba
             somethingUpdate = true;
         }
 
-
         if (JSON.stringify(initialNodeConfig.variables) !== JSON.stringify(nodeConfig.variables)) {
             updatedNode.reference.variables = nodeConfig.variables.map(v => ({
                 name: v.name,
@@ -156,17 +136,41 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: Ba
             somethingUpdate = true;
         }
 
-
         if (JSON.stringify(initialNodeConfig.body) !== JSON.stringify(nodeConfig.body)) {
             updatedNode.reference.requestBody = Object.fromEntries(
-                nodeConfig.body.map(b => [b.name, b.value])
+                nodeConfig.body
+                    .filter(b => b.name)
+                    .map(b => [b.name, b.value])
             );
             somethingUpdate = true;
         }
+
         if (somethingUpdate) {
+
             registerNodes.set(updatedNode.id, updatedNode);
-            // Updating workflow visualisation
-            setEdited(prev => !prev);
+
+            if (idChanged) {
+                registerNodes.forEach((value) => {
+
+                    if (value.nextStepId === initialNodeConfig.id) {
+                        value.nextStepId = nodeConfig.id;
+                        value.nextStepObject = updatedNode;
+                    }
+
+                    if (value.if_trueId === initialNodeConfig.id) {
+                        value.if_trueId = nodeConfig.id;
+                        value.if_trueObject = updatedNode;
+                    }
+
+                    if (value.if_falseId === initialNodeConfig.id) {
+                        value.if_falseId = nodeConfig.id;
+                        value.if_falseObject = updatedNode;
+                    }
+
+                });
+            }
+            setInitialNodeConfig(structuredClone(nodeConfig));
+            setEdited(!edited);
 
             console.log("Updated");
         } else {
@@ -247,19 +251,20 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: Ba
     return (<>
         {minimize ? <div className="space-y-3">
 
-            <input value={nodeConfig.id} placeholder="Module ID"
-                className="w-full p-2 rounded border dark:bg-gray-800"
+            <input value={nodeConfig.id} placeholder="Module ID" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                 onChange={(e) => setNodeConfig({ ...nodeConfig, id: e.target.value })}
             />
 
-            <input value={nodeConfig.url} placeholder="URL"
-                className="w-full p-2 rounded border dark:bg-gray-800"
+            <input value={nodeConfig.url} placeholder="URL" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                 onChange={(e) => setNodeConfig({ ...nodeConfig, url: e.target.value })}
             />
 
-            <input value={nodeConfig.method} placeholder="Method"
-                className="w-full p-2 rounded border dark:bg-gray-800"
+            <input value={nodeConfig.method} placeholder="Method" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
                 onChange={(e) => setNodeConfig({ ...nodeConfig, method: e.target.value })}
+            />
+
+            <input value={nodeConfig.nextStep} placeholder="Next Step" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            onChange={(e) => setNodeConfig({ ...nodeConfig, nextStep: e.target.value })}
             />
             {APIRender("Headers", "headers", addRow, updateRow, removeRow, nodeConfig)}
             {APIRender("Body", "body", addRow, updateRow, removeRow, nodeConfig)}
@@ -267,20 +272,20 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited }: { node: Ba
             {APIRender("Variables", "variables", addRow, updateRow, removeRow, nodeConfig)}
             {testWithAPICall ? <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded space-y-2 flex flex-col gap-2">
                 <div className="flex flex-col gap-2">
-                    <input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="App ID" className="w-full p-2 rounded border dark:bg-gray-800" />
-                    <input value={appKey} onChange={(e) => setAppKey(e.target.value)} placeholder="App Key" className="w-full p-2 rounded border dark:bg-gray-800" />
+                    <input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="App ID" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100  placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <input value={appKey} onChange={(e) => setAppKey(e.target.value)} placeholder="App Key" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div className="flex gap-2">
-                    <input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} placeholder="Transaction ID" className="w-full p-2 rounded border dark:bg-gray-800" />
+                    <input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} placeholder="Transaction ID" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                     <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50" onClick={() => setTransactionId(crypto.randomUUID())}>GenerateAuto</button>
                 </div>
             </div> : <></>}
-            <div className="w-full flex justify-between p-1">
-                <button onClick={SaveChanges} disabled={!isEdited} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">Save</button>
-                {!testWithAPICall && <button onClick={() => setTestWithAPICall(true)} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">Test API Call</button>}
-                {testWithAPICall && <button onClick={handleAPICall} className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50">API Call</button>}
+            <div className="w-full flex justify-between p-1 gap-2">
+                <button onClick={SaveChanges} disabled={!isEdited} className={`px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 ${!isEdited ? 'hover:cursor-not-allowed':'hover:cursor-pointer' }`}>Save</button>
+                {!testWithAPICall && <button onClick={() => setTestWithAPICall(true)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md transition disabled:opacity-50">Test API Call</button>}
+                {testWithAPICall && <button onClick={handleAPICall} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-md transition">API Call</button>}
             </div>
-            {madeApiCall ? <div className="bg-gray-100 dark:bg-gray-900 p-3 rounded max-h-80 overflow-auto text-xs">
+            {madeApiCall ? <div className="bg-gray-100 dark:bg-[#020617] border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-xs max-h-64 overflow-auto">
                 {apiInProcess ? (
                     "Loading..."
                 ) : (

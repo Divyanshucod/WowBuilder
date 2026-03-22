@@ -152,7 +152,7 @@ function resolvePointer(pointer: string) {
 }
 
 
-function buildGraph(startId: string) {
+export function buildGraph(startId: string) {
 
   const nodes: any[] = [];
   const edges: any[] = [];

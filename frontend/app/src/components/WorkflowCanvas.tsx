@@ -3,7 +3,7 @@ import '@xyflow/react/dist/style.css';
 import {  useCallback, useEffect, useRef } from 'react';
 import { ReactFlow, useReactFlow } from '@xyflow/react';
 
-import { GenerateNodes, registerNodes } from '../functions/CreateNodes';
+import { buildGraph, GenerateNodes, registerNodes } from '../functions/CreateNodes';
 import { useTheme } from './Hooks/ThemeToggler';
 import type { themeColor } from './Contexts';
 import { highlightDark, highlightLight } from './UI/NodeUI';
@@ -15,13 +15,28 @@ interface GenerateNodesReturn {
   firstInstanceMap: Map<string, string>;
 }
 
-export const WorkflowCanvas = ({ UploadedFile, initialEdges, setInitialEdges, initialNodes, setInitialNodes, firstInstanceMap, setFirstInstanceMap, isSearchOpen, setIsSearchOpen, setSelectedNode, Edited }: { UploadedFile: any | null, initialEdges: Edge[], setInitialEdges: React.Dispatch<React.SetStateAction<Edge[]>>, initialNodes: Node[], setInitialNodes: React.Dispatch<React.SetStateAction<Node[]>>, firstInstanceMap: Map<string, string>, setFirstInstanceMap: React.Dispatch<React.SetStateAction<Map<string, string>>>, isSearchOpen: boolean, setIsSearchOpen: (val: boolean) => void, setSelectedNode: (node: BaseNode | null) => void, Edited: boolean }) => {
+export const WorkflowCanvas = ({ UploadedFile, initialEdges, setInitialEdges, initialNodes, setInitialNodes, firstInstanceMap, setFirstInstanceMap, isSearchOpen, setIsSearchOpen, setSelectedNode, Edited, setEdited }: { UploadedFile: any | null, initialEdges: Edge[], setInitialEdges: React.Dispatch<React.SetStateAction<Edge[]>>, initialNodes: Node[], setInitialNodes: React.Dispatch<React.SetStateAction<Node[]>>, firstInstanceMap: Map<string, string>, setFirstInstanceMap: React.Dispatch<React.SetStateAction<Map<string, string>>>, isSearchOpen: boolean, setIsSearchOpen: (val: boolean) => void, setSelectedNode: (node: BaseNode | null) => void, Edited: boolean, setEdited: (data: boolean) => void }) => {
   const { setCenter } = useReactFlow();
   const { theme, toggleTheme } = useTheme();
   const flowref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (UploadedFile) {
-      const val = GenerateNodes(UploadedFile) as GenerateNodesReturn;
+      let val = {
+        initialNodes: [] as Node[],
+        initialEdges: [] as Edge[],
+        firstInstanceMap: new Map<string, string>()
+      };
+      if(!Edited){
+         val = GenerateNodes(UploadedFile) as GenerateNodesReturn;
+      }
+      else{
+      console.log('called');
+      
+      const ans = buildGraph('module_countryPicker');
+      val.initialEdges = ans.edges;
+      val.initialNodes = ans.nodes;
+      val.firstInstanceMap = ans.firstInstanceMap
+      }
       if (val) {
         setInitialNodes(val.initialNodes);
         setInitialEdges(val.initialEdges);
