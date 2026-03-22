@@ -1,11 +1,23 @@
+import { useState } from "react";
+import type { BaseNode } from "../functions/AllClasses";
+import { APIModule } from "./UI/APIModule";
+import { LuMaximize, LuMinimize } from "react-icons/lu";
 export const NodeInspector = ({
-  selectedNode
+  selectedNode,
+  setEdited
 }: {
-  selectedNode: { id: string; label: string } | null;
+  selectedNode: BaseNode | null;
+  setEdited: (data:boolean) => void
 }) => {
-    
+  const [minimize, setMinimize] = useState(true);
   return (
-    <div className="p-4 border-b border-gray-700 flex-1">
+    <div className="p-4 border-b border-gray-700 flex-1 relative">
+      <button
+        className="absolute top-4 right-4 text-gray-400"
+        onClick={() => setMinimize(!minimize)}
+      >
+        {minimize ? <LuMaximize /> : <LuMinimize />}
+      </button>
 
       <h3 className="text-sm font-semibold mb-3 text-[#0F172A] dark:text-[#E5E7EB]">
         Node Details
@@ -17,15 +29,7 @@ export const NodeInspector = ({
         </p>
       ) : (
         <div className="space-y-2 text-sm overflow-y-auto">
-          <div>
-            <span className="text-gray-400">ID</span>
-            <p className="text-white">{selectedNode.id}</p>
-          </div>
-
-          <div>
-            <span className="text-gray-400">Label</span>
-            <p className="text-white">{selectedNode.label}</p>
-          </div>
+         {selectedNode.type == 'api' || selectedNode.type == 'document' || selectedNode.type == 'document' ?  <APIModule node={selectedNode} minimize={minimize} setMinimize={setMinimize} setEdited={setEdited}/> : <div></div>}
         </div>
       )}
     </div>

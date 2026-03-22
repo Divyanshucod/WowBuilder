@@ -7,8 +7,8 @@ import {
   type BaseNode
 } from "./AllClasses";
 
-const registerNodes: Map<string, BaseNode> = new Map();
-const sdkResponsesNode: Map<string, string> = new Map();
+export const registerNodes: Map<string, BaseNode> = new Map();
+export const sdkResponsesNode: Map<string, string> = new Map();
 const H_SPACING = 200;
 const V_SPACING = 100;
 

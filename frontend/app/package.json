@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
+    "@types/axios": "^0.9.36",
     "@types/dagre": "^0.7.54",
     "@types/react-icons": "^2.2.7",
     "@xyflow/react": "^12.10.1",
+    "axios": "^1.13.6",
     "dagre": "^0.8.5",
     "html-to-image": "^1.11.13",
     "react": "^19.2.0",
