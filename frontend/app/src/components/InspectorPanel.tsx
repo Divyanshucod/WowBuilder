@@ -21,7 +21,7 @@ export const InspectorPanel = ({ setUploadedFile,selectedNode, setEdited, Edited
 
   {/* Node Info */}
   <div className="flex-1 overflow-y-auto">
-    <NodeInspector selectedNode={selectedNode} setEdited={setEdited} />
+    <NodeInspector selectedNode={selectedNode} setEdited={setEdited} Edited={Edited} />
   </div>
 
   {/* Chat */}

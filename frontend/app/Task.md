@@ -34,8 +34,12 @@
 
 2. Create UI to update API details
 
-3. Ensure API config is stored in node data and persists
+3. Ensure API config is stored in node data and persists (Created this mode some small change)
 
+## Condition Update support
+1. Identify the condition 
+2. Add a support to let user update the condition
+    1. Conditions rule check and if_true and if_false should be based on dropdown to avoid human errors.
 
 ## Full-Screen Editor (Better UX)
 
@@ -61,7 +65,7 @@
 4. Ensure uploaded JSON does not overwrite saved progress unintentionally
 
 
-## Export / Download
+## Export / Download 
 
 1. Enable download of workflow as:
 

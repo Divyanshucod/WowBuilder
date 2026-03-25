@@ -16,7 +16,7 @@ export const MainSection = () => {
     return (
         <div className="h-screen w-full flex overflow-hidden bg-gray-50 dark:bg-[#0B1220]">
             <CanvasLayout UploadFile={uploadedFile} selectedNode={selectedNode} setSelectedNode={setSelectedNode} Edited={edited} setEdited={setEdited}/>
-            <InspectorPanel setUploadedFile={setUploadedFile} selectedNode={selectedNode} setEdited={setEdited}/>
+            <InspectorPanel setUploadedFile={setUploadedFile} selectedNode={selectedNode} setEdited={setEdited} Edited={edited}/>
         </div>
     );
 }
