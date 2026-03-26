@@ -20,7 +20,6 @@ export const APIRender = (title: string, type: keyof typeof baseConfig, addRow: 
             {list.map((item) => (
 
                 <div key={item.id} className="flex gap-2 items-center">
-                    <Input value={item.id} onChange={(value) => updateRow(type, item.id, "id", value)} placeholder="Key" />
                     <Input value={item.name} onChange={(value) => updateRow(type, item.id, "name", value)} placeholder="Name" />
 
                     {"value" in item && (

@@ -72,7 +72,6 @@ export const WorkflowCanvas = ({ UploadedFile, initialEdges, setInitialEdges, in
       }
     }
     else{
-      console.log("Node clicked:", nodeData.originalId);
       
       const node = registerNodes.get(nodeData.originalId!);
       if (node) {
