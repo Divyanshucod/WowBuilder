@@ -1,5 +1,6 @@
 import { FaPlus, FaWindowClose } from "react-icons/fa";
 import type { baseConfig, NodeConfigType } from "./APIModule";
+import { Input } from "./Input";
 
 export const APIRender = (title: string, type: keyof typeof baseConfig, addRow: (type: keyof typeof baseConfig) => void, updateRow: (type: keyof typeof baseConfig, id: string, key: string, value: string) => void, removeRow: (type: keyof typeof baseConfig, id: string) => void, nodeConfig: NodeConfigType) => {
     const list: any[] = nodeConfig[type] as any[];
@@ -12,47 +13,29 @@ export const APIRender = (title: string, type: keyof typeof baseConfig, addRow: 
                 </p>
 
                 <button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
-                    <FaPlus className="text-gray-600 dark:text-gray-300" />
+                    <FaPlus className="text-gray-600 dark:text-gray-300" onClick={() => addRow(type)} />
                 </button>
             </div>
 
             {list.map((item) => (
+
                 <div key={item.id} className="flex gap-2 items-center">
-                    <input
-                        value={item.name}
-                        placeholder="Key"
-                        className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        onChange={(e) => updateRow(type, item.id, "name", e.target.value)}
-                    />
+                    <Input value={item.id} onChange={(value) => updateRow(type, item.id, "id", value)} placeholder="Key" />
+                    <Input value={item.name} onChange={(value) => updateRow(type, item.id, "name", value)} placeholder="Name" />
 
                     {"value" in item && (
-                        <input
-                            value={item.value}
-                            placeholder="Value"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onChange={(e) => updateRow(type, item.id, "value", e.target.value)}
-                        />
+                        <Input value={item.value} onChange={(value) => updateRow(type, item.id, "value", value)} placeholder="Value" />
                     )}
 
                     {"type" in item && (
-                        <input
-                            value={item.type}
-                            placeholder="Type"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onChange={(e) => updateRow(type, item.id, "type", e.target.value)}
-                        />
+                        <Input value={item.type} onChange={(value) => updateRow(type, item.id, "type", value)} placeholder="Type" />
                     )}
 
                     {"path" in item && (
-                        <input
-                            value={item.path}
-                            placeholder="Path"
-                            className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onChange={(e) => updateRow(type, item.id, "path", e.target.value)}
-                        />
+                        <Input value={item.path} onChange={(value) => updateRow(type, item.id, "path", value)} placeholder="Path" />
                     )}
 
-                    <FaWindowClose className="cursor-pointer text-gray-400 hover:text-red-500 transition" />
+                    <FaWindowClose className="cursor-pointer text-gray-400 hover:text-red-500 transition p-2" />
                 </div>
             ))}
         </div>

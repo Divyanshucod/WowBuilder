@@ -5,6 +5,7 @@ import axios from "axios";
 import { registerNodes } from "../../functions/CreateNodes";
 import { APIRender } from "./APIRender";
 import { JsonView } from "react-json-view-lite";
+import { Input } from "./Input";
 export type NodeConfigType = {
     headers: { id: string; name: string; value: string }[],
     body: { id: string; name: string; value: string }[],
@@ -28,7 +29,6 @@ export const baseConfig = {
     id: ""
 };
 export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { node: BaseNode, setMinimize: (minimize: boolean) => void, minimize: boolean, setEdited: (data: boolean) => void, edited: boolean }) => {
-    const [currentNode, setCurrentNode] = useState({})
     const [initialNodeConfig, setInitialNodeConfig] = useState<NodeConfigType>(baseConfig);
     const [appId, setAppId] = useState<string | undefined>(undefined);
     const [appKey, setAppKey] = useState<string | undefined>(undefined);
@@ -250,21 +250,16 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
     }, [nodeConfig, initialNodeConfig]);
     return (<>
         {minimize ? <div className="space-y-3">
+             
+            <Input value={nodeConfig.id} placeholder="Module ID" onChange={(e) => setNodeConfig({ ...nodeConfig, id: e.target.value })}/>
 
-            <input value={nodeConfig.id} placeholder="Module ID" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                onChange={(e) => setNodeConfig({ ...nodeConfig, id: e.target.value })}
+            <Input value={nodeConfig.url} placeholder="URL" onChange={(e) => setNodeConfig({ ...nodeConfig, url: e.target.value })}
             />
 
-            <input value={nodeConfig.url} placeholder="URL" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                onChange={(e) => setNodeConfig({ ...nodeConfig, url: e.target.value })}
+            <Input value={nodeConfig.method} placeholder="Method" onChange={(e) => setNodeConfig({ ...nodeConfig, method: e.target.value })}
             />
 
-            <input value={nodeConfig.method} placeholder="Method" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                onChange={(e) => setNodeConfig({ ...nodeConfig, method: e.target.value })}
-            />
-
-            <input value={nodeConfig.nextStep} placeholder="Next Step" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            onChange={(e) => setNodeConfig({ ...nodeConfig, nextStep: e.target.value })}
+            <Input value={nodeConfig.nextStep} placeholder="Next Step" onChange={(e) => setNodeConfig({ ...nodeConfig, nextStep: e.target.value })}
             />
             {APIRender("Headers", "headers", addRow, updateRow, removeRow, nodeConfig)}
             {APIRender("Body", "body", addRow, updateRow, removeRow, nodeConfig)}
@@ -272,11 +267,11 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
             {APIRender("Variables", "variables", addRow, updateRow, removeRow, nodeConfig)}
             {testWithAPICall ? <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded space-y-2 flex flex-col gap-2">
                 <div className="flex flex-col gap-2">
-                    <input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="App ID" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100  placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    <input value={appKey} onChange={(e) => setAppKey(e.target.value)} placeholder="App Key" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <Input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="App ID" />
+                    <Input value={appKey} onChange={(e) => setAppKey(e.target.value)} placeholder="App Key" />
                 </div>
                 <div className="flex gap-2">
-                    <input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} placeholder="Transaction ID" className="w-full px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e293b] text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    <Input value={transactionId} onChange={(e) => setTransactionId(e.target.value)} placeholder="Transaction ID" />
                     <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50" onClick={() => setTransactionId(crypto.randomUUID())}>GenerateAuto</button>
                 </div>
             </div> : <></>}
