@@ -277,9 +277,11 @@ function getFormNextSteps(form: any) {
   if (form.nextStep) ids.push(form.nextStep);
 
   form.properties?.sections?.forEach((section: any) => {
-    const components = section.components || section.footer?.components;
-
-    components?.forEach((c: any) => {
+    const components = section.components || [];
+    const footerComponents = section.footer?.components || [];
+    
+    const AllComponents = [...components,...footerComponents];
+    AllComponents?.forEach((c: any) => {
       if (c.type === "button") {
         ids.push(c.onClick.nextStep);
       }
