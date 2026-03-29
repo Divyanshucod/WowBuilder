@@ -1,6 +1,6 @@
 export class BaseNode {
    id: string;
-   reference:object | null
+   reference: any
    constructor() {
        this.id = '';
        this.reference = null

@@ -21,7 +21,7 @@ export type formButton = {
     enabled: string,
     type: "button",
     onClick: {
-        nextStep: string
+        nextStep: string,
     }
 }
 
@@ -55,9 +55,11 @@ export type formDate = {
     },
     onChange: {
         reloadComponents: string[]
+        nextStep: string
     },
     onValidated: {
-        nextStep: string
+        nextStep: string,
+        reloadComponents: string[]
     }
 }
 
@@ -73,10 +75,12 @@ export type formDropDown = {
     visible: string,
     enabled: string,
     onChange: {
-        reloadComponents: string[]
+         reloadComponents: string[]
+         nextStep: string
     },
     onValidated: {
-        nextStep: string
+         reloadComponents: string[]
+         nextStep: string
     }
 }
 
@@ -91,9 +95,12 @@ export type formInputBoxType = {
     secure: string,
     value: string,
     onValidated: {
+ reloadComponents: string[]
         nextStep: string
+
     },
     onChange: {
+         reloadComponents: string[]
         nextStep: string
     },
     validation: formInputBoxValidationType[]
@@ -128,7 +135,8 @@ export type formFileUpload = {
     }[],
 
     onValidated?: {
-        reloadComponents: string[]
+         reloadComponents: string[]
+         nextStep: string
     },
 
     validation?: formInputBoxValidationType[]

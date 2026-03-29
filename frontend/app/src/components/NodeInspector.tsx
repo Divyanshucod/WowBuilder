@@ -3,6 +3,7 @@ import type { BaseNode } from "../functions/AllClasses";
 import { APIModule } from "./UI/APIModule";
 import { LuMaximize, LuMinimize } from "react-icons/lu";
 import { Condition } from "./UI/Condition";
+import { FormModule } from "./UI/FormModule";
 export const NodeInspector = ({
   selectedNode,
   setEdited,
@@ -35,7 +36,7 @@ transition-colors duration-200">
         </p>
       ) : (
         <div className="space-y-2 text-sm overflow-y-auto">
-          {selectedNode.type == 'api' || selectedNode.type == 'document' || selectedNode.type == 'document' || selectedNode.type == 'face'? <APIModule node={selectedNode} minimize={minimize} setMinimize={setMinimize} setEdited={setEdited} edited={Edited} /> : <Condition node={selectedNode} setMinimize={setMinimize} minimize={minimize} setEdited={setEdited} edited={Edited} />}
+          {selectedNode.type == 'api' || selectedNode.type == 'document' || selectedNode.type == 'document' || selectedNode.type == 'face'? <APIModule node={selectedNode} minimize={minimize} setMinimize={setMinimize} setEdited={setEdited} edited={Edited} /> : selectedNode.type != 'dynamicForm' ? <Condition node={selectedNode} setMinimize={setMinimize} minimize={minimize} setEdited={setEdited} edited={Edited} /> : <FormModule node={selectedNode} setMinimize={setMinimize} minimize={minimize} setEdited={setEdited} edited={Edited} />}
         </div>
       )}
     </div>
