@@ -30,7 +30,6 @@ export const WorkflowCanvas = ({ UploadedFile, initialEdges, setInitialEdges, in
          val = GenerateNodes(UploadedFile) as GenerateNodesReturn;
       }
       else{
-      console.log('called');
       
       const ans = buildGraph('module_countryPicker');
       val.initialEdges = ans.edges;

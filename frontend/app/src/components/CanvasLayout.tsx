@@ -9,7 +9,6 @@ export const CanvasLayout = ({UploadFile, selectedNode, setSelectedNode, Edited,
       const [initialNodes, setInitialNodes] = useState<Node[]>([]);
       const [firstInstanceMap, setFirstInstanceMap] = useState<Map<string, string>>(new Map());
       const [isSearchOpen,setIsSearchOpen] = useState<boolean>(false);
-    //   console.log('CanvasLayout: isSearchOpen=', isSearchOpen);
     return (
         <div className="flex-3 flex flex-col border-r border-gray-200 dark:border-gray-800">
                <ReactFlowProvider>

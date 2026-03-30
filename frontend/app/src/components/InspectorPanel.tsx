@@ -3,7 +3,7 @@ import { AssistantPanel } from "./AssistantPanel";
 import { NodeInspector } from "./NodeInspector";
 import { UploadSection } from "./UploadSection";
 
-export const InspectorPanel = ({ setUploadedFile,selectedNode, setEdited, Edited, InspectorPanelWidth, setIsDragging, isDragging }:{
+export const InspectorPanel = ({ setUploadedFile,enableUpload,setEnableUpload,selectedNode, setEdited, Edited, InspectorPanelWidth, setIsDragging, isDragging }:{
     setUploadedFile: (data: any | null) => void,
     selectedNode: BaseNode | null
     setEdited : (data: boolean) => void
@@ -11,6 +11,8 @@ export const InspectorPanel = ({ setUploadedFile,selectedNode, setEdited, Edited
     InspectorPanelWidth: number,
     setIsDragging: (isDragging: boolean) => void,
     isDragging: boolean
+    enableUpload: boolean
+    setEnableUpload: (val: boolean) => void
 }) => {
 
     return (
@@ -25,7 +27,7 @@ export const InspectorPanel = ({ setUploadedFile,selectedNode, setEdited, Edited
 
   {/* Upload */}
   <div className="border-gray-200 dark:border-gray-800 w-full">
-    <UploadSection setUploadedFile={setUploadedFile} />
+    <UploadSection setUploadedFile={setUploadedFile} enableUpload={enableUpload} setEnableUpload={setEnableUpload} />
    
   </div>
 

@@ -7,25 +7,52 @@ import {
   type BaseNode
 } from "./AllClasses";
 
-export const registerNodes: Map<string, BaseNode> = new Map();
-export const sdkResponsesNode: Map<string, string> = new Map();
+export let registerNodes: Map<string, BaseNode> = new Map();
+export let sdkResponsesNode: Map<string, string> = new Map();
 const H_SPACING = 200;
 const V_SPACING = 100;
 
-export function GenerateNodes(schema: any) {
+export function GenerateNodes(schema: any, setEnableUpload:(val:boolean) => void, enableUpload:boolean=true) {
 
   registerNodes.clear();
   sdkResponsesNode.clear();
+  const jsonSchema = window.localStorage.getItem('workflow_schema');
+  const jsonSdkResponse = window.localStorage.getItem('workflow_sdkResponse');
 
-  createModules(schema.modules);
-  createConditions(schema.conditions);
+  if(!jsonSchema){
+     if(!enableUpload){
+     console.log('no workflow exist! enable upload button! when refresh happens');
+    //  setEnableUpload(true);
+     return;
+     }
+     else if(schema == undefined || schema == null){
+      console.log('no workflow to visualise');
+      return;
+     }
+     else{
+       createModules(schema.modules);
+       createConditions(schema.conditions);
 
-  createConditionalVariables(schema.conditionalVariables);
-  registerSdkResponses(schema.sdkResponses);
-
-  linkModules(schema.modules);
-  linkConditions(schema.conditions);
-  linkConditionalVariables(schema.conditionalVariables);
+       createConditionalVariables(schema.conditionalVariables);
+       registerSdkResponses(schema.sdkResponses);
+       console.log(sdkResponsesNode);
+       console.log(registerNodes);
+       
+       
+        window.localStorage.setItem('workflow_schema',JSON.stringify(registerNodes))
+        window.localStorage.setItem('workflow_sdkResponse',JSON.stringify(sdkResponsesNode))
+        // setEnableUpload(false)
+     }
+  }
+  // Locally store the registerNodes and sdkResponseNodes
+  const mainSchema = jsonSchema ? JSON.parse(jsonSchema) : schema;
+  if (jsonSchema) {
+    registerNodes = jsonSchema
+    sdkResponsesNode = jsonSdkResponse
+  }
+  linkModules(mainSchema.modules);
+  linkConditions(mainSchema.conditions);
+  linkConditionalVariables(mainSchema.conditionalVariables);
 
   const { nodes, edges, firstInstanceMap } = buildGraph("module_countryPicker");
 

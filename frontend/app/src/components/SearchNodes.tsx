@@ -43,7 +43,6 @@ export const SearchNodes = ({ firstInstanceMap, initialNodes, setInitialNodes, i
 
 }, [searchTerm]);
     const handleNodeClick = useCallback((event: React.MouseEvent, node: string) => {
-        console.log("Clicked");
         
       const nodeId = firstInstanceMap.get(node);
 

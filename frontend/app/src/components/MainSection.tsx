@@ -11,6 +11,7 @@ export const MainSection = () => {
     const [edited,setEdited] = useState<boolean>(false)
     const [InspectorPanelWidth,setInspectorPanelWidth] = useState<number>(DEFAULT_WIDTH);
     const [isDragging,setIsDragging] = useState<boolean>(false);
+    const [enableUpload,setEnableUpload] = useState<boolean>(false);
     useEffect(() => {
     const handleMove = (e: MouseEvent) => {
         if (!isDragging) return;
@@ -41,7 +42,7 @@ export const MainSection = () => {
     return (
         <div className="h-screen w-full flex overflow-hidden bg-gray-50 dark:bg-[#0B1220]">
             <CanvasLayout UploadFile={uploadedFile} selectedNode={selectedNode} setSelectedNode={setSelectedNode} Edited={edited} setEdited={setEdited}/>
-            <InspectorPanel setUploadedFile={setUploadedFile} selectedNode={selectedNode} setEdited={setEdited} Edited={edited} InspectorPanelWidth={InspectorPanelWidth} setIsDragging={setIsDragging} isDragging={isDragging}/>
+            <InspectorPanel setUploadedFile={setUploadedFile} selectedNode={selectedNode} setEdited={setEdited} Edited={edited} InspectorPanelWidth={InspectorPanelWidth} setIsDragging={setIsDragging} isDragging={isDragging} setEnableUpload={setEnableUpload} enableUpload={enableUpload}/>
         </div>
     );
 }

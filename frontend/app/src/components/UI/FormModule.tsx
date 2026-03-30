@@ -313,7 +313,6 @@ export const FormModule = ({ node, setMinimize, minimize, setEdited, edited }: {
 
         
     }, [node])
-    console.log('outsider useEffect' + JSON.stringify(formNodeConfig));
     
     useEffect(() => {
         if (JSON.stringify(formNodeConfig) !== JSON.stringify(initialFormNodeConfig)) {

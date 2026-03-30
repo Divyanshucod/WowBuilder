@@ -1,7 +1,11 @@
 export const UploadSection = ({
-  setUploadedFile
+  setUploadedFile,
+  enableUpload,
+  setEnableUpload
 }: {
   setUploadedFile: (data: any | null) => void;
+  enableUpload: boolean;
+  setEnableUpload: (val: boolean) => void;
 }) => {
 
   const handleUpload = () => {
@@ -32,9 +36,9 @@ export const UploadSection = ({
 
   </div>
 
-    <button onClick={handleUpload} className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md text-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+    { <button onClick={handleUpload} className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-md text-sm transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
       Upload JSON
-    </button>
+    </button>}
     </div>
   );
 };

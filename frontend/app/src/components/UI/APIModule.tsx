@@ -172,9 +172,9 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
             setInitialNodeConfig(structuredClone(nodeConfig));
             setEdited(!edited);
 
-            console.log("Updated");
+  
         } else {
-            console.log("Nothing to update");
+           
         }
     }
     // adding new row 
