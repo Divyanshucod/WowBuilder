@@ -15,12 +15,12 @@ interface GenerateNodesReturn {
   firstInstanceMap: Map<string, string>;
 }
 
-export const WorkflowCanvas = ({ UploadedFile, initialEdges, setInitialEdges, initialNodes, setInitialNodes, firstInstanceMap, setFirstInstanceMap, isSearchOpen, setIsSearchOpen, setSelectedNode, Edited, setEdited }: { UploadedFile: any | null, initialEdges: Edge[], setInitialEdges: React.Dispatch<React.SetStateAction<Edge[]>>, initialNodes: Node[], setInitialNodes: React.Dispatch<React.SetStateAction<Node[]>>, firstInstanceMap: Map<string, string>, setFirstInstanceMap: React.Dispatch<React.SetStateAction<Map<string, string>>>, isSearchOpen: boolean, setIsSearchOpen: (val: boolean) => void, setSelectedNode: (node: BaseNode | null) => void, Edited: boolean, setEdited: (data: boolean) => void }) => {
+export const WorkflowCanvas = ({ UploadedFile, initialEdges, setInitialEdges, initialNodes, setInitialNodes, firstInstanceMap, setFirstInstanceMap, isSearchOpen, setIsSearchOpen, setSelectedNode, Edited, setEdited , isWorkflowUpload }: { UploadedFile: any | null, initialEdges: Edge[], setInitialEdges: React.Dispatch<React.SetStateAction<Edge[]>>, initialNodes: Node[], setInitialNodes: React.Dispatch<React.SetStateAction<Node[]>>, firstInstanceMap: Map<string, string>, setFirstInstanceMap: React.Dispatch<React.SetStateAction<Map<string, string>>>, isSearchOpen: boolean, setIsSearchOpen: (val: boolean) => void, setSelectedNode: (node: BaseNode | null) => void, Edited: boolean, setEdited: (data: boolean) => void, isWorkflowUpload: boolean }) => {
   const { setCenter } = useReactFlow();
   const { theme, toggleTheme } = useTheme();
   const flowref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (UploadedFile) {
+    if (UploadedFile || isWorkflowUpload) {
       let val = {
         initialNodes: [] as Node[],
         initialEdges: [] as Edge[],

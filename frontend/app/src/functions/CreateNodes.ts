@@ -12,47 +12,91 @@ export let sdkResponsesNode: Map<string, string> = new Map();
 const H_SPACING = 200;
 const V_SPACING = 100;
 
-export function GenerateNodes(schema: any, setEnableUpload:(val:boolean) => void, enableUpload:boolean=true) {
+const REGISTRY_KEY = 'workflow_registry';
+const SDK_KEY = 'workflow_sdkResponse';
+const SCHEMA_KEY = 'workflow_schema';
 
+export function GenerateNodes(schema: any) {
+  
   registerNodes.clear();
   sdkResponsesNode.clear();
-  const jsonSchema = window.localStorage.getItem('workflow_schema');
-  const jsonSdkResponse = window.localStorage.getItem('workflow_sdkResponse');
 
-  if(!jsonSchema){
-     if(!enableUpload){
-     console.log('no workflow exist! enable upload button! when refresh happens');
-    //  setEnableUpload(true);
-     return;
-     }
-     else if(schema == undefined || schema == null){
-      console.log('no workflow to visualise');
-      return;
-     }
-     else{
-       createModules(schema.modules);
-       createConditions(schema.conditions);
+  const jsonRegistry = window.localStorage.getItem(REGISTRY_KEY);
+  const jsonSdkResponse = window.localStorage.getItem(SDK_KEY);
+  const jsonSchema = window.localStorage.getItem(SCHEMA_KEY);
 
-       createConditionalVariables(schema.conditionalVariables);
-       registerSdkResponses(schema.sdkResponses);
-       console.log(sdkResponsesNode);
-       console.log(registerNodes);
-       
-       
-        window.localStorage.setItem('workflow_schema',JSON.stringify(registerNodes))
-        window.localStorage.setItem('workflow_sdkResponse',JSON.stringify(sdkResponsesNode))
-        // setEnableUpload(false)
-     }
+  if (!jsonRegistry || !jsonSdkResponse) {
+    // ensure schema shape safety
+    const modules = schema?.modules || [];
+    const conditions = schema?.conditions || {};
+    const conditionalVariables = schema?.conditionalVariables || {};
+    const sdkResponses = schema?.sdkResponses ?? schema?.sdkResponse ?? {};
+
+    // build fresh register and sdk maps
+    createModules(modules);
+    createConditions(conditions);
+    createConditionalVariables(conditionalVariables);
+    registerSdkResponses(sdkResponses);
+
+    // serialise registerNodes and sdkResponsesNode for faster reloads
+    try {
+      const serialised = Array.from(registerNodes.entries()).map(([key, value]) => [key, { ...value, nextStepObject: undefined, if_trueObject: undefined, if_falseObject: undefined }]);
+      window.localStorage.setItem(REGISTRY_KEY, JSON.stringify(serialised));
+      window.localStorage.setItem(SDK_KEY, JSON.stringify(Array.from(sdkResponsesNode.entries())));
+      // persist original schema separately (so linking uses original shape)
+      window.localStorage.setItem(SCHEMA_KEY, JSON.stringify(schema));
+    } catch (err) {
+      console.warn('Failed to persist workflow cache to localStorage', err);
+    }
   }
-  // Locally store the registerNodes and sdkResponseNodes
+
+  // take the schema which is present
   const mainSchema = jsonSchema ? JSON.parse(jsonSchema) : schema;
-  if (jsonSchema) {
-    registerNodes = jsonSchema
-    sdkResponsesNode = jsonSdkResponse
+
+  // If we have cached registry & sdk, attempt to rebuild registerNodes & sdkResponsesNode
+  if (jsonRegistry && jsonSdkResponse) {
+    try {
+      const moduleParsed = JSON.parse(jsonRegistry);
+      const sdkParsed = JSON.parse(jsonSdkResponse);
+
+      registerNodes = new Map(
+        moduleParsed.map(([key, value]: any) => {
+          // Rehydrate appropriate class instance based on stored value
+          const keyPrefix = String(key).split('_')[0];
+          if (keyPrefix === 'condition' || value?.type === 'condition') {
+            const node = new Condition();
+            Object.assign(node, value);
+            return [key, node];
+          } else if (value?.type === "dynamicForm" || value?.subType === "form") {
+            const node = new FormModule();
+            Object.assign(node, value);
+            return [key, node];
+          } else {
+            const node = new APIModule();
+            Object.assign(node, value);
+            return [key, node];
+          }
+        })
+      );
+
+      sdkResponsesNode = new Map(sdkParsed);
+    } catch (err) {
+      console.warn('Some issue so use fallback schema', err);
+      registerNodes.clear();
+      sdkResponsesNode.clear();
+      createModules(mainSchema?.modules || []);
+      createConditions(mainSchema?.conditions || {});
+      createConditionalVariables(mainSchema?.conditionalVariables || {});
+      registerSdkResponses(mainSchema?.sdkResponses ?? mainSchema?.sdkResponse ?? {});
+    }
   }
-  linkModules(mainSchema.modules);
-  linkConditions(mainSchema.conditions);
-  linkConditionalVariables(mainSchema.conditionalVariables);
+
+  console.log('Linking');
+
+  // Defensive linking: ensure each link function receives a safe value
+  linkModules(mainSchema?.modules || []);
+  linkConditions(mainSchema?.conditions || {});
+  linkConditionalVariables(mainSchema?.conditionalVariables || {});
 
   const { nodes, edges, firstInstanceMap } = buildGraph("module_countryPicker");
 
@@ -66,6 +110,7 @@ export function GenerateNodes(schema: any, setEnableUpload:(val:boolean) => void
 
 
 function createModules(modules: any[]) {
+  if (!Array.isArray(modules)) return;
   modules.forEach((module) => {
     if (module.type === "countries") {
       const node = new APIModule();
@@ -100,6 +145,7 @@ function createModules(modules: any[]) {
 }
 
 function createConditions(conditions: any) {
+  if (!conditions) return;
   for (const id in conditions) {
     const node = new Condition();
     node.id = id;
@@ -113,6 +159,7 @@ function createConditions(conditions: any) {
 }
 
 function createConditionalVariables(vars: any) {
+  if (!vars) return;
   for (const id in vars) {
     const node = new ConditionalVariable();
     node.id = id;
@@ -126,12 +173,14 @@ function createConditionalVariables(vars: any) {
 }
 
 function registerSdkResponses(responses: any) {
+  if (!responses) return;
   for (const id in responses) {
     sdkResponsesNode.set(id, responses[id]);
   }
 }
 
 function linkModules(modules: any[]) {
+  if (!Array.isArray(modules)) return;
   modules.forEach((module) => {
     const node = registerNodes.get(module.id);
     if (!node) return;
@@ -149,9 +198,10 @@ function linkModules(modules: any[]) {
 }
 
 function linkConditions(conditions: any) {
+  if (!conditions) return;
   for (const id in conditions) {
     const node = registerNodes.get(id);
-    if (!node) return;
+    if (!node) continue;
 
     node.if_trueObject = registerNodes.get(node.if_trueId);
     node.if_falseObject = registerNodes.get(node.if_falseId);
@@ -159,9 +209,10 @@ function linkConditions(conditions: any) {
 }
 
 function linkConditionalVariables(vars: any) {
+  if (!vars) return;
   for (const id in vars) {
     const node = registerNodes.get(id);
-    if (!node) return;
+    if (!node) continue;
 
     node.if_trueObject = resolvePointer(node.if_trueId);
     node.if_falseObject = resolvePointer(node.if_falseId);
@@ -169,6 +220,7 @@ function linkConditionalVariables(vars: any) {
 }
 
 function resolvePointer(pointer: string) {
+  if (!pointer || typeof pointer !== 'string') return undefined;
   const parts = pointer.split(".");
   if (parts.length === 2) {
     return parts[0] === "conditionalVariables"
@@ -258,7 +310,8 @@ export function buildGraph(startId: string) {
       return;
     }
 
-    const children = getNextNodes(registerNodes.get(id)!);
+    const nextNode = registerNodes.get(id);
+    const children = nextNode ? getNextNodes(nextNode) : [];
 
     if (!children.length) {
       currentX++;
@@ -289,11 +342,12 @@ export function buildGraph(startId: string) {
 function getNextNodes(node: BaseNode): string[] {
   const next: string[] = [];
   
-  if (node && node.if_trueId) next.push(node.if_trueId);
-  if (node && node.if_falseId) next.push(node.if_falseId);
+  if (!node) return next;
+  if (node.if_trueId) next.push(node.if_trueId);
+  if (node.if_falseId) next.push(node.if_falseId);
 
-  if (node && node.nextStepId) next.push(node.nextStepId);
-  if (node && node.nextStepIds) next.push(...node.nextStepIds);
+  if (node.nextStepId) next.push(node.nextStepId);
+  if (node.nextStepIds) next.push(...node.nextStepIds);
 
   return next;
 }
@@ -301,15 +355,17 @@ function getNextNodes(node: BaseNode): string[] {
 function getFormNextSteps(form: any) {
   const ids: string[] = [];
 
+  if (!form) return ids;
   if (form.nextStep) ids.push(form.nextStep);
 
-  form.properties?.sections?.forEach((section: any) => {
+  const sections = form.properties?.sections || [];
+  sections.forEach((section: any) => {
     const components = section.components || [];
     const footerComponents = section.footer?.components || [];
     
-    const AllComponents = [...components,...footerComponents];
-    AllComponents?.forEach((c: any) => {
-      if (c.type === "button") {
+    const AllComponents = [...components, ...footerComponents];
+    AllComponents.forEach((c: any) => {
+      if (c?.type === "button" && c.onClick?.nextStep) {
         ids.push(c.onClick.nextStep);
       }
     });
