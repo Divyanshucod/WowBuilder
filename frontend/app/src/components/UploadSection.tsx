@@ -1,7 +1,7 @@
 export const UploadSection = ({
   setUploadedFile,
   enableUpload,
-  setEnableUpload
+  setEnableUpload: _setEnableUpload
 }: {
   setUploadedFile: (data: any | null) => void;
   enableUpload: boolean;

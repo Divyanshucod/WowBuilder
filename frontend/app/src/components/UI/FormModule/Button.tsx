@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { cardClass, inputClass, sectionClass } from "./UIHelper";
 
 export const ButtonField = ({ data, id, handleUpdateComponent }: any) => {

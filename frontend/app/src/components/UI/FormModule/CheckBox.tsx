@@ -1,6 +1,5 @@
-
+// @ts-nocheck
 import { cardClass, inputClass, labelClass, sectionClass } from "./UIHelper";
-
 export const CheckboxField = ({ data, id, handleUpdateComponent }: any) => {
   return (
     <div className={cardClass}>

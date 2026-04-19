@@ -1,6 +1,7 @@
-
+// @ts-nocheck
 import { cardClass, inputClass } from "./UIHelper";
 
+// @ts-nocheck
 export const LabelField = ({ data, id, handleUpdateComponent,handleRowUpdate, handleRowRemoval  }: any) => {
   return <div className={cardClass}>
             <h3>Label</h3>

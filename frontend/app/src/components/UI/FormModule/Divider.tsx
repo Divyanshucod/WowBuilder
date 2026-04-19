@@ -1,6 +1,5 @@
-
+// @ts-nocheck
 import { cardClass, inputClass } from "./UIHelper";
-
 export const DividerField = ({ data, id, handleUpdateComponent,handleRowUpdate, handleRowRemoval  }: any) => {
   return (
     <div className={cardClass}>

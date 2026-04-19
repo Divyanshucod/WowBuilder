@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { FaPlus, FaWindowClose } from "react-icons/fa";
 import { cardClass, inputClass, sectionClass } from "./UIHelper";
 

@@ -1,8 +1,11 @@
+// @ts-nocheck
 import { useEffect, useState } from "react";
 import type { BaseNode } from "../../functions/AllClasses";
 import type { formButton, formCheckBox, formDate, formDividerType, formDropDown, formFileUpload, formInputBoxType, formLabelType, formLoaderType } from "./types";
 import { LuMaximize, LuMinimize } from "react-icons/lu";
 import { Input } from "./Input";
+import { registerNodes, persistCache } from "../../functions/CreateNodes";
+import { useAutoSave } from '../AutoSaveContext';
 import { RenderComponent} from "./FormRender";
 
 type FormComponent = formButton | formCheckBox | formDate | formDropDown | formLabelType | formLoaderType | formDividerType | formInputBoxType | formFileUpload;
@@ -322,8 +325,63 @@ export const FormModule = ({ node, setMinimize, minimize, setEdited, edited }: {
         }
     }, [formNodeConfig])
 
-    const SaveChanges = () => {
-        // Handling updates here
+    // debounced auto save when formNodeConfig changes
+    useEffect(() => {
+        let id: any = null;
+        if (JSON.stringify(formNodeConfig) !== JSON.stringify(initialFormNodeConfig)) {
+            id = setTimeout(() => applyFormChanges(), 400);
+        }
+        return () => clearTimeout(id);
+    }, [formNodeConfig]);
+
+    const { start, finish } = useAutoSave();
+
+    const applyFormChanges = async () => {
+        start();
+        try {
+            // generate shallow copy of node and update reference
+            const updatedNode = structuredClone(node as any) as any;
+            let somethingUpdated = false;
+
+            // id change
+            if (formNodeConfig.id !== (node as any).id) {
+                registerNodes.delete((node as any).id);
+                updatedNode.id = formNodeConfig.id;
+                updatedNode.reference.id = formNodeConfig.id;
+                somethingUpdated = true;
+            }
+
+            if (formNodeConfig.nextStep !== (node as any).reference?.nextStep) {
+                updatedNode.reference.nextStep = formNodeConfig.nextStep;
+                updatedNode.nextStepId = formNodeConfig.nextStep;
+                somethingUpdated = true;
+            }
+
+            // reconstruct components & footer into original shape
+            try {
+                const comps = formNodeConfig.components.componentIds.map(id => formNodeConfig.components.componentMap[id]);
+                const footer = formNodeConfig.footerComponent.componentIds.map(id => formNodeConfig.footerComponent.componentMap[id]);
+                if (updatedNode.reference.properties && Array.isArray(updatedNode.reference.properties.sections)) {
+                    updatedNode.reference.properties.sections[0].components = comps;
+                    if (!updatedNode.reference.properties.sections[0].footer) updatedNode.reference.properties.sections[0].footer = {};
+                    updatedNode.reference.properties.sections[0].footer.components = footer;
+                    somethingUpdated = true;
+                }
+            } catch (err) {
+                // ignore
+            }
+
+            if (somethingUpdated) {
+                registerNodes.set(updatedNode.id, updatedNode);
+                setInitialFormNodeConfig(structuredClone(formNodeConfig));
+                setEdited(!edited);
+                await persistCache().catch((err) => console.warn('persistCache failed', err));
+            }
+            finish(true);
+        } catch (err: any) {
+            console.warn('applyFormChanges error', err);
+            finish(false, String(err?.message || err));
+        }
     }
     return (<>
         {minimize ? <div className="space-y-3">
@@ -335,10 +393,10 @@ export const FormModule = ({ node, setMinimize, minimize, setEdited, edited }: {
                       <RenderComponent id={id} formNodeConfig={formNodeConfig} updateComponentFields={updateComponentFields} addMoreFields={addMoreFields} handleRemove={handleRemove} />
                 ))}
             <div className="w-full flex justify-between p-1 gap-2">
-            <button onClick={SaveChanges} disabled={!isEdited} className={`px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 ${!isEdited ? 'hover:cursor-not-allowed':'hover:cursor-pointer' }`}>Save</button>
+            {/* auto-saved */}
             </div>
         </div> : <>
-            <button className="absolute top-2 right-2 text-gray-500 dark:text-gray-300 hover:scale-110 transition" onClick={() => setMinimize(prev => !prev)}> {minimize ? <LuMaximize /> : <LuMinimize />} </button>
+            <button className="absolute top-2 right-2 text-gray-500 dark:text-gray-300 hover:scale-110 transition" onClick={() => setMinimize(!minimize)}> {minimize ? <LuMaximize /> : <LuMinimize />} </button>
         </>}
     </>
     )

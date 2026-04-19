@@ -3,16 +3,17 @@ import {FiSearch} from 'react-icons/fi'
 import { flashHighlightNode } from './WorkflowCanvas';
 import { useTheme } from './Hooks/ThemeToggler';
 import { useReactFlow } from '@xyflow/react';
-export const SearchNodes = ({ firstInstanceMap, initialNodes, setInitialNodes, isSearchOpen,setIsSearchOpen}:{firstInstanceMap: Map<string,string>, initialNodes: Node[], setInitialNodes: React.Dispatch<React.SetStateAction<Node[]>>, isSearchOpen: boolean, setIsSearchOpen:(val:boolean)=>void}) => {
+import type { Node as FlowNode } from '@xyflow/react';
+export const SearchNodes = ({ firstInstanceMap, initialNodes, setInitialNodes, isSearchOpen,setIsSearchOpen}:{firstInstanceMap: Map<string,string>, initialNodes: FlowNode[], setInitialNodes: React.Dispatch<React.SetStateAction<FlowNode[]>>, isSearchOpen: boolean, setIsSearchOpen:(val:boolean)=>void}) => {
   const [searchedNodes, setSearchedNodes] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const debounceRef = useRef<number | null>(null);
-   const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
    const {setCenter} = useReactFlow()
 
    const searchRef = useRef<HTMLInputElement | null>(null); 
   useEffect(() => {
-  function handleClickOutside(e) {
+  function handleClickOutside(e: any) {
     if (searchRef.current && !searchRef.current.contains(e.target)) {
       setIsSearchOpen(false);
     }
@@ -42,7 +43,7 @@ export const SearchNodes = ({ firstInstanceMap, initialNodes, setInitialNodes, i
   }, 500);
 
 }, [searchTerm]);
-    const handleNodeClick = useCallback((event: React.MouseEvent, node: string) => {
+  const handleNodeClick = useCallback((_event: React.MouseEvent, node: string) => {
         
       const nodeId = firstInstanceMap.get(node);
 
@@ -55,7 +56,7 @@ export const SearchNodes = ({ firstInstanceMap, initialNodes, setInitialNodes, i
           flashHighlightNode(nodeId, theme, setInitialNodes);
         }
       }
-    , [initialNodes, setCenter]);
+    , [initialNodes, setCenter, firstInstanceMap, setInitialNodes, theme]);
   return (
    <div className="relative w-full" ref={searchRef}>
   <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500">

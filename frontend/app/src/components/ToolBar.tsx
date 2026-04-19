@@ -1,8 +1,10 @@
 import { ExportButton } from "./ExportButton";
 import { ThemeToggle } from "./ThemeToggle";
 import { SearchNodes } from "./SearchNodes";
+import { AutoSave } from './AutoSave';
+import type { Node as FlowNode } from '@xyflow/react';
 
-export const ToolBar = ({firstInstanceMap, initialNodes, setInitialNodes, isSearchOpen, setIsSearchOpen}:{firstInstanceMap: Map<string, string>, initialNodes: Node[], setInitialNodes: React.Dispatch<React.SetStateAction<Node[]>>, isSearchOpen: boolean, setIsSearchOpen:(val:boolean)=>void}) => {
+export const ToolBar = ({firstInstanceMap, initialNodes, setInitialNodes, isSearchOpen, setIsSearchOpen}:{firstInstanceMap: Map<string, string>, initialNodes: FlowNode[], setInitialNodes: React.Dispatch<React.SetStateAction<FlowNode[]>>, isSearchOpen: boolean, setIsSearchOpen:(val:boolean)=>void}) => {
     return (
   <div className="h-14 px-4 flex items-center justify-between bg-white/80 dark:bg-[#0B1220]/80 backdrop-blur border-b border-gray-200 dark:border-gray-800">
 
@@ -21,6 +23,7 @@ export const ToolBar = ({firstInstanceMap, initialNodes, setInitialNodes, isSear
   {/* Right */}
   <div className="flex items-center gap-2">
     <ExportButton />
+    <AutoSave />
     <ThemeToggle />
   </div>
 

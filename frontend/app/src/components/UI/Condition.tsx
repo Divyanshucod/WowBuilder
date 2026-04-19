@@ -1,7 +1,8 @@
 import { LuMaximize, LuMinimize } from "react-icons/lu";
 import type { BaseNode } from "../../functions/AllClasses";
 import { useEffect, useState } from "react";
-import { registerNodes } from "../../functions/CreateNodes";
+import { registerNodes, persistCache } from "../../functions/CreateNodes";
+import { useAutoSave } from '../AutoSaveContext';
 import { Input } from "./Input";
 
 
@@ -20,70 +21,105 @@ const conditionConfigData: conditionConfigType = {
 export const Condition = ({ node, setMinimize, minimize, setEdited, edited }: { node: BaseNode, setMinimize: (minimize: boolean) => void, minimize: boolean, setEdited: (data: boolean) => void, edited: boolean }) => {
     const [conditionConfig, setConditionConfig] = useState<conditionConfigType>(conditionConfigData)
     const [initialConditionConfig, setInitialConditionConfig] = useState<conditionConfigType>(conditionConfigData)
-    const [isEdited, setIsEdited] = useState<boolean>(false)
+    const [_isEdited, _setIsEdited] = useState<boolean>(false)
     const updateCondition = (type: keyof typeof conditionConfigData, value: string) => {
         setConditionConfig(prev => ({ ...prev, [type]: value }))
     }
-    function SaveChanges() {
-        // Update the node object so that main object also would get updated
-        // created a shallow copy
-        const conditionCopy = structuredClone(node);
-        let somethingUpdated = false;
-        if (conditionConfig.if_false !== node.if_falseId) {
-            conditionCopy.if_falseId = conditionConfig.if_false;
-            conditionCopy.reference.if_false = conditionConfig.if_false;
-            somethingUpdated = true;
-        }
 
-        if (conditionConfig.if_true !== node.if_trueId) {
-            conditionCopy.if_trueId = conditionConfig.if_true;
-            conditionCopy.reference.if_true = conditionConfig.if_true;
-            somethingUpdated = true;
-        }
+    const { start, finish } = useAutoSave();
 
-        if (conditionConfig.rule !== node.rule) {
-            conditionCopy.rule = conditionConfig.rule;
-            conditionCopy.reference.rule = conditionConfig.rule
-            somethingUpdated = true;
-        }
+    // helper: update references across registry when an id changes
+    const updateReferencesForRenamedId = (oldId: string, newId: string) => {
+        if (!oldId || oldId === newId) return;
+        registerNodes.forEach((n: any) => {
+            let changed = false;
+            if (n.nextStepId === oldId) { n.nextStepId = newId; changed = true; }
+            if (Array.isArray(n.nextStepIds)) {
+                n.nextStepIds = n.nextStepIds.map((id: string) => id === oldId ? newId : id);
+                changed = true;
+            }
+            if (n.if_trueId === oldId) { n.if_trueId = newId; changed = true; }
+            if (n.if_falseId === oldId) { n.if_falseId = newId; changed = true; }
+            if (changed && n.reference) {
+                if (n.reference.nextStep === oldId) n.reference.nextStep = newId;
+                if (n.reference.if_true === oldId) n.reference.if_true = newId;
+                if (n.reference.if_false === oldId) n.reference.if_false = newId;
+            }
+        });
+    }
 
-        if (conditionConfig.id !== node.id) {
-            conditionCopy.id = conditionConfig.id;
-            conditionCopy.reference.id = conditionConfig.id;
-            registerNodes.delete(node.id)
-            somethingUpdated = true;
-        }
+    // Auto-apply condition changes (debounced) with autosave context
+    const applyConditionChanges = async () => {
+        start();
+        try {
+            const conditionCopy: any = structuredClone(node as any);
+            let somethingUpdated = false;
+            const oldId = node.id;
+            const newId = conditionConfig.id;
 
-        if (somethingUpdated) {
-            registerNodes.set(node.id, conditionCopy);
+            if (conditionConfig.if_false !== (node as any).if_falseId) {
+                conditionCopy.if_falseId = conditionConfig.if_false;
+                if (conditionCopy.reference) conditionCopy.reference.if_false = conditionConfig.if_false;
+                somethingUpdated = true;
+            }
 
-            setEdited(!edited)
+            if (conditionConfig.if_true !== (node as any).if_trueId) {
+                conditionCopy.if_trueId = conditionConfig.if_true;
+                if (conditionCopy.reference) conditionCopy.reference.if_true = conditionConfig.if_true;
+                somethingUpdated = true;
+            }
+
+            if (conditionConfig.rule !== (node as any).rule) {
+                conditionCopy.rule = conditionConfig.rule;
+                if (conditionCopy.reference) conditionCopy.reference.rule = conditionConfig.rule
+                somethingUpdated = true;
+            }
+
+            if (newId && newId !== oldId) {
+                conditionCopy.id = newId;
+                if (conditionCopy.reference) conditionCopy.reference.id = newId;
+                registerNodes.delete(oldId);
+                updateReferencesForRenamedId(oldId, newId);
+                somethingUpdated = true;
+            }
+
+            if (somethingUpdated) {
+                registerNodes.set(conditionCopy.id, conditionCopy);
+                setInitialConditionConfig({ ...conditionConfig });
+                setEdited(!edited);
+                await persistCache().catch((err) => console.warn('persistCache failed', err));
+            }
+            finish(true);
+        } catch (err: any) {
+            console.warn('applyConditionChanges error', err);
+            finish(false, String(err?.message || err));
         }
     }
     useEffect(() => {
         setInitialConditionConfig(conditionConfigData)
         setConditionConfig(conditionConfigData)
         setConditionConfig({
-            if_false: node.if_falseId,
-            if_true: node.if_trueId,
-            rule: node.rule,
-            id: node.id
+            if_false: (node as any).if_falseId,
+            if_true: (node as any).if_trueId,
+            rule: (node as any).rule,
+            id: (node as any).id
         })
          setInitialConditionConfig({
-            if_false: node.if_falseId,
-            if_true: node.if_trueId,
-            rule: node.rule,
-            id: node.id
+            if_false: (node as any).if_falseId,
+            if_true: (node as any).if_trueId,
+            rule: (node as any).rule,
+            id: (node as any).id
         })
     }, [node])
 
     useEffect(() => {
-        if (JSON.stringify(initialConditionConfig) != JSON.stringify(conditionConfig)) {
-            setIsEdited(prev => !prev);
-        }else{
-            setIsEdited(prev => !prev);
+        // debounced auto save
+        let id: any = null;
+        if (JSON.stringify(initialConditionConfig) !== JSON.stringify(conditionConfig)) {
+            id = setTimeout(() => applyConditionChanges(), 300);
         }
-    }, [conditionConfig])
+        return () => clearTimeout(id);
+    }, [conditionConfig]);
     return <>{minimize ? <div className="space-y-3">
            <div className="bg-gray-50 dark:bg-[#020617] border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-3">
             <div className="flex justify-between items-center">
@@ -99,10 +135,10 @@ export const Condition = ({ node, setMinimize, minimize, setEdited, edited }: { 
         </div>
 
         <div className="w-full flex justify-between p-1 gap-2">
-            <button onClick={SaveChanges} disabled={!isEdited} className={`px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 ${!isEdited ? 'hover:cursor-not-allowed' : 'hover:cursor-pointer'}`}>Save</button>
+            {/* auto-saved */}
         </div>
     </div>
     </div> : <>
-        <button className="absolute top-2 right-2 text-gray-500 dark:text-gray-300 hover:scale-110 transition" onClick={() => setMinimize(prev => !prev)}> {minimize ? <LuMaximize /> : <LuMinimize />} </button>
+    <button className="absolute top-2 right-2 text-gray-500 dark:text-gray-300 hover:scale-110 transition" onClick={() => setMinimize(!minimize)}> {minimize ? <LuMaximize /> : <LuMinimize />} </button>
     </>}</>
 }

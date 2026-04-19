@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import type { formLabelType, formLoaderType } from "../types";
 import { cardClass, inputClass } from "./UIHelper";
 

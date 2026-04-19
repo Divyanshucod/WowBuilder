@@ -41,8 +41,8 @@ export const AssistantPanel = () => {
   </div>
 
   <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700 focus-within:ring-2 focus-within:ring-blue-500">
-    <input className="bg-transparent outline-none text-sm flex-1 text-gray-700 dark:text-gray-200 placeholder-gray-400" />
-    <button className="bg-blue-500 text-white p-2 rounded transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
+    <input value={input} onChange={(e) => setInput(e.target.value)} className="bg-transparent outline-none text-sm flex-1 text-gray-700 dark:text-gray-200 placeholder-gray-400" />
+    <button onClick={sendMessage} className="bg-blue-500 text-white p-2 rounded transition-all duration-200 hover:scale-[1.02] hover:shadow-md">
       <MdSend/>
     </button>
   </div>

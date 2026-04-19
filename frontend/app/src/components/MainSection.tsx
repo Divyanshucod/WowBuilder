@@ -3,6 +3,7 @@ import { CanvasLayout } from "./CanvasLayout";
 import { InspectorPanel } from "./InspectorPanel";
 import { BaseNode } from "../functions/AllClasses";
 import { isWorkflowLoaded } from "../functions/HelperFunctions";
+import { AutoSaveProvider } from "./AutoSaveContext";
 const DEFAULT_WIDTH = 340;
 const MIN_WIDTH = 300;
 const MAX_WIDTH = 480;
@@ -42,8 +43,10 @@ export const MainSection = () => {
 
     return (
         <div className="h-screen w-full flex overflow-hidden bg-gray-50 dark:bg-[#0B1220]">
+            <AutoSaveProvider>
             <CanvasLayout UploadFile={uploadedFile} selectedNode={selectedNode} setSelectedNode={setSelectedNode} Edited={edited} setEdited={setEdited} isWorkflowUpload={isWorkflowUpload}/>
             <InspectorPanel setUploadedFile={setUploadedFile} selectedNode={selectedNode} setEdited={setEdited} Edited={edited} InspectorPanelWidth={InspectorPanelWidth} setIsDragging={setIsDragging} isDragging={isDragging} setEnableUpload={setIsWorkflowUpload} enableUpload={isWorkflowUpload}/>
+            </AutoSaveProvider>
         </div>
     );
 }

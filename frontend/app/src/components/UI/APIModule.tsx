@@ -2,7 +2,8 @@ import { LuMaximize, LuMinimize } from "react-icons/lu";
 import { BaseNode } from "../../functions/AllClasses"
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { registerNodes } from "../../functions/CreateNodes";
+import { registerNodes, persistCache } from "../../functions/CreateNodes";
+import { useAutoSave } from '../AutoSaveContext';
 import { APIRender } from "./APIRender";
 import { JsonView } from "react-json-view-lite";
 import { Input } from "./Input";
@@ -35,14 +36,14 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
     const [transactionId, setTransactionId] = useState<string | undefined>(undefined);
     const [testWithAPICall, setTestWithAPICall] = useState<boolean>(false);
     const [nodeConfig, setNodeConfig] = useState<NodeConfigType>(baseConfig);
-    const [isEdited, setIsEdited] = useState(false);
+    const [_isEdited, _setIsEdited] = useState(false);
     const [madeApiCall, setMadeApiCall] = useState(false);
     const [result, setResult] = useState<any>()
     const [apiInProcess, setAPIInProcess] = useState(false)
-    function updateList(type, updater) {
+    function updateList(type: keyof typeof baseConfig, updater: (prev: any) => any) {
         setNodeConfig(prev => ({
             ...prev,
-            [type]: updater(prev[type])
+            [type]: updater((prev as any)[type])
         }));
     }
     async function handleAPICall() {
@@ -65,7 +66,11 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
         }
     }
 
-    function SaveChanges() {
+    // applyChanges: same logic as previous SaveChanges but runs automatically (debounced)
+    const { start, finish } = useAutoSave();
+
+    const applyChanges = async () => {
+        start();
         let somethingUpdate = false;
         let idChanged = false;
 
@@ -170,12 +175,20 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
                 });
             }
             setInitialNodeConfig(structuredClone(nodeConfig));
+            // notify parent to re-generate graph
             setEdited(!edited);
 
-  
-        } else {
-           
+            // persist cache asynchronously (via autosave context)
+            try {
+                await persistCache();
+                finish(true);
+            } catch (err) {
+                console.warn('persistCache failed', err);
+                finish(false, String(err));
+            }
         }
+        // if nothingUpdated ensure finish is called to decrement count
+        if (!somethingUpdate) finish(true);
     }
     // adding new row 
     const addRow = (type: keyof typeof baseConfig) => {
@@ -199,9 +212,9 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
             query: [] as { id: string; name: string; value: string; type: string }[],
             variables: [] as { id: string; name: string; path: string }[],
             method: node.reference?.properties?.apiType || "json_get",
-            url: node.url,
-            nextStep: node.nextStepId,
-            name: node.reference?.name || "",
+            url: node.url || "",
+                nextStep: node.nextStepId || "",
+                name: node.reference?.name || "",
             id: node.id
         };
 
@@ -242,11 +255,19 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
         setInitialNodeConfig(newConfig);
 
     }, [node]);
-    const removeRow = (type: keyof typeof baseConfig, id: string) => {
-        updateList(type, (list: any[]) => list.filter(item => item.id !== id));
-    };
+    // when nodeConfig changes and differs from initial, auto apply changes (debounced)
     useEffect(() => {
-        setIsEdited(JSON.stringify(initialNodeConfig) !== JSON.stringify(nodeConfig));
+        let id: any = null;
+        if (JSON.stringify(initialNodeConfig) !== JSON.stringify(nodeConfig)) {
+            id = setTimeout(() => {
+                applyChanges();
+            }, 350);
+        }
+        return () => clearTimeout(id);
+    }, [nodeConfig]);
+    
+    useEffect(() => {
+        _setIsEdited(JSON.stringify(initialNodeConfig) !== JSON.stringify(nodeConfig));
     }, [nodeConfig, initialNodeConfig]);
     return (<>
         {minimize ? <div className="space-y-3">
@@ -261,10 +282,10 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
 
             <Input value={nodeConfig.nextStep} placeholder="Next Step" onChange={(e) => setNodeConfig({ ...nodeConfig, nextStep: e.target.value })}
             />
-            {APIRender("Headers", "headers", addRow, updateRow, removeRow, nodeConfig)}
-            {APIRender("Body", "body", addRow, updateRow, removeRow, nodeConfig)}
-            {APIRender("Query", "query", addRow, updateRow, removeRow, nodeConfig)}
-            {APIRender("Variables", "variables", addRow, updateRow, removeRow, nodeConfig)}
+            {APIRender("Headers", "headers", addRow, updateRow, nodeConfig)}
+            {APIRender("Body", "body", addRow, updateRow, nodeConfig)}
+            {APIRender("Query", "query", addRow, updateRow, nodeConfig)}
+            {APIRender("Variables", "variables", addRow, updateRow, nodeConfig)}
             {testWithAPICall ? <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded space-y-2 flex flex-col gap-2">
                 <div className="flex flex-col gap-2">
                     <Input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="App ID" />
@@ -276,7 +297,6 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
                 </div>
             </div> : <></>}
             <div className="w-full flex justify-between p-1 gap-2">
-                <button onClick={SaveChanges} disabled={!isEdited} className={`px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50 ${!isEdited ? 'hover:cursor-not-allowed':'hover:cursor-pointer' }`}>Save</button>
                 {!testWithAPICall && <button onClick={() => setTestWithAPICall(true)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md transition disabled:opacity-50">Test API Call</button>}
                 {testWithAPICall && <button onClick={handleAPICall} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-md transition">API Call</button>}
             </div>
@@ -288,7 +308,7 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
                 )}
             </div> : <></>}
         </div> : <>
-            <button className="absolute top-2 right-2 text-gray-500 dark:text-gray-300 hover:scale-110 transition" onClick={() => setMinimize(prev => !prev)}> {minimize ? <LuMaximize /> : <LuMinimize />} </button>
+        <button className="absolute top-2 right-2 text-gray-500 dark:text-gray-300 hover:scale-110 transition" onClick={() => setMinimize(!minimize)}> {minimize ? <LuMaximize /> : <LuMinimize />} </button>
         </>}
     </>
     )

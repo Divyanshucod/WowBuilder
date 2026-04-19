@@ -1,6 +1,18 @@
 export class BaseNode {
    id: string;
    reference: any
+   // Common optional properties used across various node subclasses
+   type?: string;
+   subType?: string;
+   url?: string;
+   nextStepId?: string;
+   nextStepIds?: string[];
+   nextStepObject?: BaseNode;
+   nextStepObjects?: BaseNode[];
+   if_trueId?: string;
+   if_falseId?: string;
+   if_trueObject?: BaseNode;
+   if_falseObject?: BaseNode;
    constructor() {
        this.id = '';
        this.reference = null

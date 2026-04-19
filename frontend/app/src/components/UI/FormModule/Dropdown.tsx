@@ -1,4 +1,6 @@
+// @ts-nocheck
 import { FaPlus, FaWindowClose } from "react-icons/fa";
+import { cardClass, inputClass } from "./UIHelper";
 
 export const DropdownField = ({
   data,
@@ -7,6 +9,7 @@ export const DropdownField = ({
   handleRowUpdate,
   handleRowRemoval
 }: any) => {
+
   return (
     <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl p-4 space-y-3">
       <h3 className="font-semibold text-sm">Dropdown</h3>

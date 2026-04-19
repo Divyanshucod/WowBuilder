@@ -7,14 +7,68 @@ import {
   type BaseNode
 } from "./AllClasses";
 
+export const REGISTRY_KEY = 'workflow_registry';
+export const SDK_KEY = 'workflow_sdkResponse';
+export const SCHEMA_KEY = 'workflow_schema';
+
 export let registerNodes: Map<string, BaseNode> = new Map();
 export let sdkResponsesNode: Map<string, string> = new Map();
 const H_SPACING = 200;
 const V_SPACING = 100;
 
-const REGISTRY_KEY = 'workflow_registry';
-const SDK_KEY = 'workflow_sdkResponse';
-const SCHEMA_KEY = 'workflow_schema';
+// helper to produce a serializable snapshot of the registry (strip object links)
+export function getSerializableRegistry() {
+  return Array.from(registerNodes.entries()).map(([key, value]: any) => {
+    // shallow copy and remove references that cannot/shouldn't be serialized
+    const copy: any = { ...value };
+    copy.nextStepObject = undefined;
+    copy.if_trueObject = undefined;
+    copy.if_falseObject = undefined;
+    return [key, copy];
+  });
+}
+
+// persist current registry + schema to localStorage, only overwriting when changed
+export async function persistCache(schema?: any) {
+  try {
+    const serialisable = getSerializableRegistry();
+    const registryJson = JSON.stringify(serialisable);
+    const prevRegistry = window.localStorage.getItem(REGISTRY_KEY);
+
+    if (prevRegistry !== registryJson) {
+      // async write to avoid blocking UI
+      await new Promise<void>((res) => {
+        window.localStorage.setItem(REGISTRY_KEY, registryJson);
+        res();
+      });
+    }
+
+    if (schema !== undefined) {
+      const schemaJson = JSON.stringify(schema);
+      const prevSchema = window.localStorage.getItem(SCHEMA_KEY);
+      if (prevSchema !== schemaJson) {
+        await new Promise<void>((res) => {
+          window.localStorage.setItem(SCHEMA_KEY, schemaJson);
+          res();
+        });
+      }
+    }
+
+    // optionally persist sdk responses too if changed
+    const sdkJson = JSON.stringify(Array.from(sdkResponsesNode.entries()));
+    const prevSdk = window.localStorage.getItem(SDK_KEY);
+    if (prevSdk !== sdkJson) {
+      await new Promise<void>((res) => {
+        window.localStorage.setItem(SDK_KEY, sdkJson);
+        res();
+      });
+    }
+  } catch (err) {
+    // keep non-blocking: log and continue
+    // eslint-disable-next-line no-console
+    console.warn('persistCache error', err);
+  }
+}
 
 export function GenerateNodes(schema: any) {
   
@@ -190,9 +244,9 @@ function linkModules(modules: any[]) {
     }
 
     if (node.nextStepIds) {
-      node.nextStepObjects = node.nextStepIds
-        .map((id: string) => registerNodes.get(id))
-        .filter(Boolean);
+        node.nextStepObjects = node.nextStepIds
+          .map((id: string) => registerNodes.get(id))
+          .filter((n): n is BaseNode => !!n);
     }
   });
 }
@@ -203,8 +257,8 @@ function linkConditions(conditions: any) {
     const node = registerNodes.get(id);
     if (!node) continue;
 
-    node.if_trueObject = registerNodes.get(node.if_trueId);
-    node.if_falseObject = registerNodes.get(node.if_falseId);
+    if (node.if_trueId) node.if_trueObject = registerNodes.get(node.if_trueId);
+    if (node.if_falseId) node.if_falseObject = registerNodes.get(node.if_falseId);
   }
 }
 
@@ -214,8 +268,8 @@ function linkConditionalVariables(vars: any) {
     const node = registerNodes.get(id);
     if (!node) continue;
 
-    node.if_trueObject = resolvePointer(node.if_trueId);
-    node.if_falseObject = resolvePointer(node.if_falseId);
+    if (node.if_trueId) node.if_trueObject = resolvePointer(node.if_trueId);
+    if (node.if_falseId) node.if_falseObject = resolvePointer(node.if_falseId);
   }
 }
 
