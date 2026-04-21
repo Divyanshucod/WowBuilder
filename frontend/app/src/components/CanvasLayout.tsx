@@ -3,7 +3,6 @@ import { WorkflowCanvas } from "./WorkflowCanvas";
 import { ToolBar } from "./ToolBar";
 import { useState } from 'react';
 import type { BaseNode } from '../functions/AllClasses';
-import { AutoSaveProvider } from './AutoSaveContext';
 
 export const CanvasLayout = ({UploadFile, selectedNode: _selectedNode, setSelectedNode, Edited, setEdited, isWorkflowUpload}:{UploadFile: any | null, selectedNode: BaseNode | null, setSelectedNode: (node: BaseNode | null) => void, Edited: boolean, setEdited: (data: boolean) => void, isWorkflowUpload: boolean}) => {
       const [initialEdges, setInitialEdges] = useState<Edge[]>([]);

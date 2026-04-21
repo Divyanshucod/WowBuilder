@@ -29,6 +29,7 @@ export const baseConfig = {
     name: "",
     id: ""
 };
+let id: any = null;
 export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { node: BaseNode, setMinimize: (minimize: boolean) => void, minimize: boolean, setEdited: (data: boolean) => void, edited: boolean }) => {
     const [initialNodeConfig, setInitialNodeConfig] = useState<NodeConfigType>(baseConfig);
     const [appId, setAppId] = useState<string | undefined>(undefined);
@@ -71,6 +72,7 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
 
     const applyChanges = async () => {
         start();
+        
         let somethingUpdate = false;
         let idChanged = false;
 
@@ -178,7 +180,7 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
             // notify parent to re-generate graph
             setEdited(!edited);
 
-            // persist cache asynchronously (via autosave context)
+            // cache upate
             try {
                 await persistCache();
                 finish(true);
@@ -187,8 +189,11 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
                 finish(false, String(err));
             }
         }
-        // if nothingUpdated ensure finish is called to decrement count
+        // if nothing updated
         if (!somethingUpdate) finish(true);
+    }
+    const removeRow = (type: keyof typeof baseConfig, id: string) => {
+        updateList(type, (list: any[]) => list.filter(item => item.id !== id));
     }
     // adding new row 
     const addRow = (type: keyof typeof baseConfig) => {
@@ -255,20 +260,17 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
         setInitialNodeConfig(newConfig);
 
     }, [node]);
-    // when nodeConfig changes and differs from initial, auto apply changes (debounced)
+
+    // If frequent changes then only change after 500ms
     useEffect(() => {
-        let id: any = null;
+        clearTimeout(id);
         if (JSON.stringify(initialNodeConfig) !== JSON.stringify(nodeConfig)) {
             id = setTimeout(() => {
                 applyChanges();
-            }, 350);
+            }, 500);
         }
         return () => clearTimeout(id);
     }, [nodeConfig]);
-    
-    useEffect(() => {
-        _setIsEdited(JSON.stringify(initialNodeConfig) !== JSON.stringify(nodeConfig));
-    }, [nodeConfig, initialNodeConfig]);
     return (<>
         {minimize ? <div className="space-y-3">
              
@@ -280,12 +282,11 @@ export const APIModule = ({ node, setMinimize, minimize, setEdited, edited }: { 
             <Input value={nodeConfig.method} placeholder="Method" onChange={(e) => setNodeConfig({ ...nodeConfig, method: e.target.value })}
             />
 
-            <Input value={nodeConfig.nextStep} placeholder="Next Step" onChange={(e) => setNodeConfig({ ...nodeConfig, nextStep: e.target.value })}
-            />
-            {APIRender("Headers", "headers", addRow, updateRow, nodeConfig)}
-            {APIRender("Body", "body", addRow, updateRow, nodeConfig)}
-            {APIRender("Query", "query", addRow, updateRow, nodeConfig)}
-            {APIRender("Variables", "variables", addRow, updateRow, nodeConfig)}
+            <Input value={nodeConfig.nextStep} placeholder="Next Step" onChange={(e) => setNodeConfig({ ...nodeConfig, nextStep: e.target.value })} />
+            {APIRender("Headers", "headers", addRow, updateRow, nodeConfig, removeRow)}
+            {APIRender("Body", "body", addRow, updateRow, nodeConfig, removeRow)}
+            {APIRender("Query", "query", addRow, updateRow, nodeConfig, removeRow)}
+            {APIRender("Variables", "variables", addRow, updateRow, nodeConfig, removeRow)}
             {testWithAPICall ? <div className="bg-gray-50 dark:bg-gray-900 p-2 rounded space-y-2 flex flex-col gap-2">
                 <div className="flex flex-col gap-2">
                     <Input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="App ID" />

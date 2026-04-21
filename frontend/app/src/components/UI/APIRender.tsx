@@ -1,8 +1,8 @@
-import { FaPlus, FaWindowClose } from "react-icons/fa";
+import { FaMinus, FaPlus, FaWindowClose } from "react-icons/fa";
 import type { baseConfig, NodeConfigType } from "./APIModule";
 import { Input } from "./Input";
 
-export const APIRender = (title: string, type: keyof typeof baseConfig, addRow: (type: keyof typeof baseConfig) => void, updateRow: (type: keyof typeof baseConfig, id: string, key: string, value: string) => void, nodeConfig: NodeConfigType) => {
+export const APIRender = (title: string, type: keyof typeof baseConfig, addRow: (type: keyof typeof baseConfig) => void, updateRow: (type: keyof typeof baseConfig, id: string, key: string, value: string) => void, nodeConfig: NodeConfigType, removeRow: (type: keyof typeof baseConfig, id: string) => void) => {
     const list: any[] = nodeConfig[type] as any[];
 
     return (
@@ -19,7 +19,8 @@ export const APIRender = (title: string, type: keyof typeof baseConfig, addRow: 
 
             {list.map((item) => (
 
-                <div key={item.id} className="flex gap-2 items-center">
+                <div className="w-full flex gap-3 items-center h-full">
+                    <div key={item.id} className="flex gap-2 items-center">
                     <Input value={item.name} onChange={(value) => updateRow(type, item.id, "name", value)} placeholder="Name" />
 
                     {"value" in item && (
@@ -35,6 +36,10 @@ export const APIRender = (title: string, type: keyof typeof baseConfig, addRow: 
                     )}
 
                     <FaWindowClose className="cursor-pointer text-gray-400 hover:text-red-500 transition p-2" />
+                </div>
+                <button className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                       <FaMinus className="text-gray-600 dark:text-gray-300" onClick={() => removeRow(type, item.id)} />
+                </button>
                 </div>
             ))}
         </div>
