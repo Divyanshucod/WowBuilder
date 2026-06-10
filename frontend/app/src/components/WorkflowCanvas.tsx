@@ -73,6 +73,8 @@ export const WorkflowCanvas = ({ UploadedFile, initialEdges, setInitialEdges, in
     else{
       
       const node = registerNodes.get(nodeData.originalId!);
+      console.log(node);
+      
       if (node) {
         setSelectedNode(node);
       }

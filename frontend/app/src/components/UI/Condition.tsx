@@ -18,10 +18,10 @@ const conditionConfigData: conditionConfigType = {
     if_false: "" as string,
     rule: "" as string
 }
+let id: any = null;
 export const Condition = ({ node, setMinimize, minimize, setEdited, edited }: { node: BaseNode, setMinimize: (minimize: boolean) => void, minimize: boolean, setEdited: (data: boolean) => void, edited: boolean }) => {
     const [conditionConfig, setConditionConfig] = useState<conditionConfigType>(conditionConfigData)
     const [initialConditionConfig, setInitialConditionConfig] = useState<conditionConfigType>(conditionConfigData)
-    const [_isEdited, _setIsEdited] = useState<boolean>(false)
     const updateCondition = (type: keyof typeof conditionConfigData, value: string) => {
         setConditionConfig(prev => ({ ...prev, [type]: value }))
     }
@@ -31,6 +31,8 @@ export const Condition = ({ node, setMinimize, minimize, setEdited, edited }: { 
     // helper: update references across registry when an id changes
     const updateReferencesForRenamedId = (oldId: string, newId: string) => {
         if (!oldId || oldId === newId) return;
+        console.log('Before the registryNode update');
+        
         registerNodes.forEach((n: any) => {
             let changed = false;
             if (n.nextStepId === oldId) { n.nextStepId = newId; changed = true; }
@@ -91,7 +93,7 @@ export const Condition = ({ node, setMinimize, minimize, setEdited, edited }: { 
             }
             finish(true);
         } catch (err: any) {
-            console.warn('applyConditionChanges error', err);
+            console.warn('Error while applying changes', err);
             finish(false, String(err?.message || err));
         }
     }
@@ -111,12 +113,24 @@ export const Condition = ({ node, setMinimize, minimize, setEdited, edited }: { 
             id: (node as any).id
         })
     }, [node])
-
+    // Frequent updates (debounce)
     useEffect(() => {
-        // debounced auto save
-        let id: any = null;
+        clearTimeout(id);
+        const hasBadValue = (obj: any, type:any) => {
+  try {
+    JSON.stringify(obj);
+    return false;
+  } catch (e) {
+    console.error("Bad object:", obj,type);
+    return true;
+  }
+};
+
+hasBadValue(conditionConfig, "condition");
+hasBadValue(initialConditionConfig, "initialCondition");
+        
         if (JSON.stringify(initialConditionConfig) !== JSON.stringify(conditionConfig)) {
-            id = setTimeout(() => applyConditionChanges(), 300);
+            id = setTimeout(() => applyConditionChanges(), 500);
         }
         return () => clearTimeout(id);
     }, [conditionConfig]);
@@ -128,10 +142,10 @@ export const Condition = ({ node, setMinimize, minimize, setEdited, edited }: { 
                 </p>
             </div>
         <div key={conditionConfig.id} className="flex gap-2 items-center flex-col">
-            <Input value={conditionConfig.id} onChange={(value) => updateCondition('id', value)} placeholder="Condition Name" />
-            <Input value={conditionConfig.rule} onChange={(value) => updateCondition('rule', value)} placeholder="Condition Rule" />
-            <Input value={conditionConfig.if_true} onChange={(value) => updateCondition('if_true', value)} placeholder="IF True" />
-            <Input value={conditionConfig.if_false} onChange={(value) => updateCondition('if_false', value)} placeholder="IF False" />
+            <Input value={conditionConfig.id} onChange={(e:any) => updateCondition('id', e.target.value)} placeholder="Condition Name" />
+            <Input value={conditionConfig.rule} onChange={(e:any) => updateCondition('rule', e.target.value)} placeholder="Condition Rule" />
+            <Input value={conditionConfig.if_true} onChange={(e:any) => updateCondition('if_true', e.target.value)} placeholder="IF True" />
+            <Input value={conditionConfig.if_false} onChange={(e:any) => updateCondition('if_false', e.target.value)} placeholder="IF False" />
         </div>
 
         <div className="w-full flex justify-between p-1 gap-2">

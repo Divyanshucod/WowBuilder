@@ -106,7 +106,7 @@ export function GenerateNodes(schema: any) {
 
   // take the schema which is present
   const mainSchema = jsonSchema ? JSON.parse(jsonSchema) : schema;
-
+  
   // If we have cached registry & sdk, attempt to rebuild registerNodes & sdkResponsesNode
   if (jsonRegistry && jsonSdkResponse) {
     try {
@@ -148,6 +148,7 @@ export function GenerateNodes(schema: any) {
   console.log('Linking');
 
   // Defensive linking: ensure each link function receives a safe value
+  
   linkModules(mainSchema?.modules || []);
   linkConditions(mainSchema?.conditions || {});
   linkConditionalVariables(mainSchema?.conditionalVariables || {});
@@ -256,7 +257,7 @@ function linkConditions(conditions: any) {
   for (const id in conditions) {
     const node = registerNodes.get(id);
     if (!node) continue;
-
+    
     if (node.if_trueId) node.if_trueObject = registerNodes.get(node.if_trueId);
     if (node.if_falseId) node.if_falseObject = registerNodes.get(node.if_falseId);
   }
